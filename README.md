@@ -22,6 +22,7 @@ npm run dev        # เปิด http://localhost:3000
 | `npm run lint`         | ตรวจโค้ดด้วย ESLint             |
 | `npm run typecheck`    | ตรวจ TypeScript               |
 | `npm run format`       | จัดรูปแบบโค้ดด้วย Prettier        |
+| `npm test`             | รันเทสต์ (Vitest)               |
 | `npm run format:check` | ตรวจรูปแบบโดยไม่แก้ไฟล์ (ใช้ใน CI) |
 
 ## หมายเหตุ

@@ -148,9 +148,9 @@ if user มี subscription active     → อนุญาต
 
 **0.2 ค่า config และ flag** — S
 
-- [ ] `src/lib/env.ts` ตรวจ env ด้วย Zod
-- [ ] `src/lib/flags.ts` (`PAYWALL_ENABLED=false`, `SIGNUP_ENABLED=true`)
-- [ ] `.env.example` ครบทุกตัว
+- [x] `src/lib/env.ts` ตรวจ env ด้วย Zod
+- [x] `src/lib/flags.ts` (`PAYWALL_ENABLED=false`, `SIGNUP_ENABLED=true`)
+- [x] `.env.example` ครบทุกตัว
 
 **0.3 ฐานข้อมูล** — M
 
@@ -167,7 +167,7 @@ if user มี subscription active     → อนุญาต
 
 **0.5 ระบบสิทธิ์** — S
 
-- [ ] `features/access/canAccess.ts` + unit test ครบทุกกรณี (free / premium / paywall ปิด / มีสมาชิก / หมดอายุ)
+- [x] `features/access/can-access.ts` + unit test ครบทุกกรณี (free / premium / paywall ปิด / มีสมาชิก / หมดอายุ)
 
 **0.6 Layout หลัก** — S
 
@@ -175,8 +175,8 @@ if user มี subscription active     → อนุญาต
 
 **0.7 คุณภาพและการ deploy** — S
 
-- [ ] Vitest + Playwright (เทสต์ "หน้าแรกเปิดได้")
-- [ ] GitHub Actions: lint → typecheck → test
+- [~] Vitest (เสร็จแล้ว) + Playwright (ยัง) (เทสต์ "หน้าแรกเปิดได้")
+- [x] GitHub Actions (ไฟล์พร้อม รอเชื่อม GitHub): format → lint → typecheck → test
 - [ ] ต่อ Vercel: `main` = production, branch อื่น = preview
 - [ ] README: วิธีรันเครื่องใหม่ตั้งแต่ศูนย์
 
