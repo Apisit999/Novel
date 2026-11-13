@@ -175,10 +175,10 @@ if user มี subscription active     → อนุญาต
 
 **0.7 คุณภาพและการ deploy** — S
 
-- [~] Vitest (เสร็จแล้ว) + Playwright (ยัง) (เทสต์ "หน้าแรกเปิดได้")
+- [x] Vitest + Playwright (เทสต์หน้าแรก เมนู ธีม และ 404)
 - [x] GitHub Actions (ไฟล์พร้อม รอเชื่อม GitHub): format → lint → typecheck → test
 - [ ] ต่อ Vercel: `main` = production, branch อื่น = preview
-- [ ] README: วิธีรันเครื่องใหม่ตั้งแต่ศูนย์
+- [x] README: วิธีรันเครื่องใหม่ตั้งแต่ศูนย์
 
 **เกณฑ์เสร็จเฟส 0:** clone ลงเครื่องใหม่ → ทำตาม README → รันได้ภายในไม่กี่คำสั่ง · CI เขียว · เว็บเปล่าขึ้นบน URL จริง · ทดสอบ RLS แล้วว่าผู้ใช้ทั่วไปอ่านตาราง premium ไม่ได้เมื่อเปิด paywall
 

@@ -43,3 +43,7 @@ next-env.d.ts
 # stale folder from Astro prototype
 /_old_node_modules/
 !.env.example
+
+# playwright
+/test-results/
+/playwright-report/
