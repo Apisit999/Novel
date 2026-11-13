@@ -1,0 +1,16 @@
+---
+import { STATUS_LABEL } from '../lib/site';
+import { novelUrl, type Novel } from '../lib/novels';
+interface Props {
+	novel: Novel;
+}
+const { novel } = Astro.props;
+const { title, author, description, status, tags } = novel.data;
+---
+
+<a class="card" href={novelUrl(novel.id)}>
+	<h2>{title}</h2>
+	<div class="muted">โดย {author} · {STATUS_LABEL[status]}</div>
+	<p>{description}</p>
+	{tags.map((t) => <span class="tag">{t}</span>)}
+</a>

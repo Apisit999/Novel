@@ -1,0 +1,58 @@
+---
+import '../styles/global.css';
+import { SITE } from '../lib/site';
+
+interface Props {
+	title?: string;
+	description?: string;
+}
+const { title, description = SITE.description } = Astro.props;
+const fullTitle = title ? `${title} | ${SITE.name}` : SITE.name;
+---
+
+<!doctype html>
+<html lang={SITE.lang}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<meta name="generator" content={Astro.generator} />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{fullTitle}</title>
+		<meta property="og:title" content={fullTitle} />
+		<meta property="og:description" content={description} />
+		<!-- ตั้งธีม/ฟอนต์ก่อนวาดหน้า กันจอกะพริบ -->
+		<script is:inline>
+			(function () {
+				try {
+					var t = localStorage.getItem('theme');
+					if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+					document.documentElement.dataset.theme = t;
+					var f = localStorage.getItem('font');
+					if (f) document.documentElement.dataset.font = f;
+					var s = localStorage.getItem('size');
+					if (s) document.documentElement.style.setProperty('--read-size', s + 'rem');
+				} catch (e) {}
+			})();
+		</script>
+	</head>
+	<body>
+		<header class="site-header">
+			<div class="inner">
+				<a class="brand" href="/">{SITE.name}</a>
+				<button class="btn" id="theme-toggle" type="button" aria-label="สลับธีม">ธีม</button>
+			</div>
+		</header>
+		<main><slot /></main>
+		<footer class="site-footer">© {new Date().getFullYear()} {SITE.name}</footer>
+		<script>
+			const root = document.documentElement;
+			const themes = ['light', 'sepia', 'dark'];
+			document.getElementById('theme-toggle')?.addEventListener('click', () => {
+				const next = themes[(themes.indexOf(root.dataset.theme ?? 'light') + 1) % themes.length];
+				root.dataset.theme = next;
+				localStorage.setItem('theme', next);
+			});
+		</script>
+	</body>
+</html>

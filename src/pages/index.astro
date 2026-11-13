@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import NovelCard from '../components/NovelCard.astro';
+import { getNovels } from '../lib/novels';
+import { SITE } from '../lib/site';
+
+const novels = await getNovels();
+---
+
+<Base>
+	<h1>{SITE.name}</h1>
+	<p class="muted">{SITE.description}</p>
+	{novels.length === 0 && <p>ยังไม่มีนิยาย — เพิ่มไฟล์ใน <code>src/content/novels/</code></p>}
+	{novels.map((n) => <NovelCard novel={n} />)}
+</Base>
