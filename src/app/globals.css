@@ -1,0 +1,72 @@
+@import "tailwindcss";
+@import "@fontsource/sarabun/thai-400.css";
+@import "@fontsource/sarabun/thai-500.css";
+@import "@fontsource/sarabun/thai-700.css";
+@import "@fontsource/sarabun/latin-400.css";
+@import "@fontsource/sarabun/latin-500.css";
+@import "@fontsource/sarabun/latin-700.css";
+@import "@fontsource/noto-serif-thai/thai-400.css";
+@import "@fontsource/noto-serif-thai/thai-700.css";
+
+/* ===== ธีม: เปลี่ยนค่าตรงนี้ที่เดียว ทั้งเว็บเปลี่ยนตาม ===== */
+:root {
+  --background: #faf8f4;
+  --surface: #ffffff;
+  --foreground: #222222;
+  --muted: #6b6b6b;
+  --border: #e4dfd5;
+  --accent: #b4533a;
+  --accent-foreground: #ffffff;
+  --read-size: 1.2rem;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #14151a;
+  --surface: #1d1f26;
+  --foreground: #e6e4df;
+  --muted: #9a9aa3;
+  --border: #2d2f38;
+  --accent: #e08a6f;
+  --accent-foreground: #14151a;
+  color-scheme: dark;
+}
+
+:root[data-theme="sepia"] {
+  --background: #f1e7d0;
+  --surface: #f8f0dc;
+  --foreground: #433422;
+  --muted: #7a6a53;
+  --border: #dccfb0;
+  --accent: #9a4a2a;
+  --accent-foreground: #ffffff;
+}
+
+/* ส่งค่าธีมให้ Tailwind ใช้เป็น class เช่น bg-surface, text-muted, border-border */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: "Sarabun", system-ui, sans-serif;
+  --font-reading: "Noto Serif Thai", "Sarabun", serif;
+}
+
+:root[data-font="sans"] {
+  --font-reading: "Sarabun", system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  line-height: 1.7;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
