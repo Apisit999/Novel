@@ -157,8 +157,8 @@ if user มี subscription active     → อนุญาต
 - [ ] ติดตั้ง Supabase CLI, เชื่อมโปรเจกต์
 - [~] migration แรก: ตารางทั้งหมดในส่วนที่ 4 + index + trigger `updated_at` — เขียนแล้ว `supabase/migrations/20261113000000_init.sql` แต่ **ยังไม่เคยรันจริง**
 - [~] SQL function `can_access(episode_id)` + RLS policy ทุกตาราง — เขียนแล้ว **ยังไม่ทดสอบ** (ต้องมี Docker หรือโปรเจกต์ Supabase)
-- [ ] `seed.sql`: นิยายตัวอย่าง 1 เรื่อง, มังงะตัวอย่าง, วิดีโอ placeholder
-- [ ] สคริปต์ `npm run db:types` gen type
+- [~] `seed.sql`: นิยายตัวอย่าง 1 เรื่อง, มังงะตัวอย่าง, วิดีโอ placeholder — เขียนแล้ว **ยังไม่เคยรันจริง**
+- [~] สคริปต์ `npm run db:types` — เพิ่มแล้ว (ต้องมี Supabase CLI + `supabase start`)
 
 **0.4 Content-type registry** — M
 
@@ -171,7 +171,7 @@ if user มี subscription active     → อนุญาต
 
 **0.6 Layout หลัก** — S
 
-- [~] Header (โลโก้, เมนูประเภท, ค้นหา, ปุ่มบัญชี), Footer, ธีม 3 แบบไม่กะพริบ, หน้า 404/500 — เสร็จ: Header+เมนูจาก registry, Footer, ธีม, 404; ยังไม่มี: ค้นหา, ปุ่มบัญชี, 500
+- [~] Header (โลโก้, เมนูประเภท, ค้นหา, ปุ่มบัญชี), Footer, ธีม 3 แบบไม่กะพริบ, หน้า 404/500 — เสร็จ: Header+เมนูจาก registry, Footer, ธีม, 404; 500 (`error.tsx`); ยังไม่มี: ค้นหา, ปุ่มบัญชี (รอเฟส 2/6)
 
 **0.7 คุณภาพและการ deploy** — S
 
