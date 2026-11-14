@@ -16,14 +16,40 @@ test.beforeEach(({}, info) => {
   test.skip(info.project.name !== "desktop", "ระบบบัญชีทดสอบบนจอคอมอย่างเดียว");
 });
 
-test("หน้าเข้าสู่ระบบมีช่องอีเมล และลิงก์ที่ไม่ถูกต้องแสดงข้อความผิดพลาด", async ({ page }) => {
+test("หน้าเข้าสู่ระบบ: ปุ่ม Google เป็นทางหลัก ช่องอีเมลปิดอยู่ (EMAIL_LOGIN_ENABLED=false)", async ({
+  page,
+}) => {
   await page.goto("/login");
-  await expect(page.getByLabel("อีเมล")).toBeVisible();
-  await expect(page.getByRole("button", { name: "ส่งลิงก์เข้าสู่ระบบ" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "เข้าสู่ระบบ" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "ดำเนินการต่อด้วย Google" })).toBeVisible();
+  await expect(page.getByLabel("อีเมล")).toHaveCount(0);
+  await expect(page.getByText("เราใช้บัญชี Google เพื่อยืนยันตัวตนเท่านั้น")).toBeVisible();
+});
 
+test("ลิงก์ที่ไม่ถูกต้อง และการกดยกเลิกที่หน้า Google แสดงข้อความที่เหมาะสม", async ({ page }) => {
   await page.goto("/auth/callback?code=not-a-real-code");
   await expect(page).toHaveURL(/\/login\?error=1/);
   await expect(page.getByText("ไม่ถูกต้องหรือหมดอายุ")).toBeVisible();
+
+  // Google ส่ง ?error=access_denied กลับมาเมื่อผู้ใช้กดยกเลิก
+  await page.goto("/auth/callback?error=access_denied&error_description=User+denied");
+  await expect(page).toHaveURL(/\/login\?error=denied/);
+  await expect(page.getByText("คุณยกเลิกการเข้าสู่ระบบ")).toBeVisible();
+  await expect(page.getByRole("button", { name: "ดำเนินการต่อด้วย Google" })).toBeVisible();
+});
+
+test("กดปุ่ม Google: ไปหน้าของ Google ถ้าตั้งค่าแล้ว ไม่งั้นแสดงข้อความที่เป็นมิตร (ไม่ใช่ JSON ดิบ)", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "ดำเนินการต่อด้วย Google" }).click();
+  await page.waitForURL(/accounts\.google\.com|\/login\?error=provider/, { timeout: 15_000 });
+  if (page.url().includes("accounts.google.com")) {
+    // ตั้งค่า Google ครบแล้ว: ต้องเป็นหน้าเลือกบัญชีของ Google และกลับมาที่ callback ของเรา
+    expect(decodeURIComponent(page.url())).toContain("/auth/callback");
+  } else {
+    await expect(page.getByText("ยังเข้าสู่ระบบด้วย Google ไม่ได้")).toBeVisible();
+  }
 });
 
 test("ไม่ล็อกอิน: /account พาไปหน้าเข้าสู่ระบบ", async ({ page }) => {

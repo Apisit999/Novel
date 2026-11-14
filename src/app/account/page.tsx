@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { deleteAccount, signOut } from "@/features/auth/actions";
+import { Avatar, profileOf } from "@/features/auth/avatar";
 import { getCurrentUser } from "@/server/auth-db";
 
 export const metadata = { title: "บัญชีของฉัน", robots: { index: false } };
@@ -12,12 +13,20 @@ async function AccountBody({
 }) {
   const [user, { error }] = await Promise.all([getCurrentUser(), searchParams]);
   if (!user) redirect("/login?next=/account");
+  const profile = profileOf(user);
 
   return (
     <div className="flex flex-col gap-10">
-      <p>
-        เข้าสู่ระบบด้วย <strong>{user.email}</strong>
-      </p>
+      <div className="flex items-center gap-4">
+        <Avatar name={profile.name} picture={profile.picture} size={64} />
+        <div>
+          <p className="text-xl font-bold">{profile.name}</p>
+          <p className="text-muted">{user.email}</p>
+          <p className="text-muted text-sm">
+            เข้าสู่ระบบด้วย {profile.provider === "google" ? "Google" : "อีเมล"}
+          </p>
+        </div>
+      </div>
 
       <form action={signOut}>
         <button

@@ -10,5 +10,6 @@ export function getFlags() {
   const env = parseServerEnv(process.env);
   return {
     signupEnabled: env.SIGNUP_ENABLED,
+    emailLoginEnabled: env.EMAIL_LOGIN_ENABLED,
   };
 }

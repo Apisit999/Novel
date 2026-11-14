@@ -24,6 +24,8 @@ const flag = (fallback: boolean) =>
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   SIGNUP_ENABLED: flag(true),
+  // ล็อกอินด้วยอีเมล (magic link): ปิดไว้ก่อน ใช้ Google เป็นทางหลัก — เปิดคืนด้วย EMAIL_LOGIN_ENABLED=true
+  EMAIL_LOGIN_ENABLED: flag(false),
 });
 
 export function parsePublicEnv(source: Record<string, string | undefined>) {

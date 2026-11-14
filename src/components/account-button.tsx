@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar, profileOf } from "@/features/auth/avatar";
 import { getCurrentUser } from "@/server/auth-db";
 
 const iconBtn =
@@ -33,15 +34,15 @@ export function AccountButtonFallback() {
 
 export async function AccountButton() {
   const user = await getCurrentUser();
-  return user ? (
+  if (!user) return <AccountButtonFallback />;
+  const { name, picture } = profileOf(user);
+  return (
     <Link
       href="/account"
       aria-label="บัญชีของฉัน"
-      className={`${iconBtn} bg-accent text-accent-foreground`}
+      className="border-border hover:border-accent flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 no-underline"
     >
-      <PersonIcon />
+      <Avatar name={name} picture={picture} size={40} />
     </Link>
-  ) : (
-    <AccountButtonFallback />
   );
 }

@@ -276,6 +276,47 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
     });
   });
 
+  describe("โปรไฟล์ตอนสมัคร (trigger)", () => {
+    const profileOf = async (id: string) =>
+      (await db.query(`select display_name, avatar_url from profiles where id = $1`, [id])).rows[0];
+    const signup = (id: string, email: string, meta: object) =>
+      db.query(
+        `insert into auth.users (id, aud, role, email, raw_user_meta_data)
+         values ($1, 'authenticated', 'authenticated', $2, $3::jsonb)`,
+        [id, email, JSON.stringify(meta)],
+      );
+
+    it("สมัครด้วย Google: ใช้ชื่อเต็มและรูปจาก Google", async () => {
+      const id = randomUUID();
+      await signup(id, `g-${tag}@test.invalid`, {
+        full_name: "สมชาย ใจดี",
+        avatar_url: "https://lh3.googleusercontent.com/a/example",
+      });
+      expect(await profileOf(id)).toEqual({
+        display_name: "สมชาย ใจดี",
+        avatar_url: "https://lh3.googleusercontent.com/a/example",
+      });
+    });
+    it("ผู้ให้บริการที่ส่งเป็น name/picture ก็ใช้ได้", async () => {
+      const id = randomUUID();
+      await signup(id, `p-${tag}@test.invalid`, { name: "Jane", picture: "https://x.test/p.png" });
+      expect(await profileOf(id)).toEqual({
+        display_name: "Jane",
+        avatar_url: "https://x.test/p.png",
+      });
+    });
+    it("สมัครด้วยอีเมลล้วน: ใช้ชื่อหน้า @ และไม่มีรูป", async () => {
+      const id = randomUUID();
+      await signup(id, `plain-${tag}@test.invalid`, {});
+      expect(await profileOf(id)).toEqual({ display_name: `plain-${tag}`, avatar_url: null });
+    });
+    it("ค่าว่างจากผู้ให้บริการไม่ทับชื่อสำรอง", async () => {
+      const id = randomUUID();
+      await signup(id, `empty-${tag}@test.invalid`, { full_name: "", avatar_url: "" });
+      expect(await profileOf(id)).toEqual({ display_name: `empty-${tag}`, avatar_url: null });
+    });
+  });
+
   describe("การตั้งค่า", () => {
     it("ผู้ใช้ทั่วไปแก้สวิตช์ paywall ไม่ได้ (แก้แล้วไม่มีผล)", async () => {
       await setPaywall(true);

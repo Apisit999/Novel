@@ -15,8 +15,49 @@ export interface LoginState {
 
 const loginSchema = z.object({ email: z.email().max(254), next: z.string().max(500).optional() });
 
-/** ส่งลิงก์เข้าสู่ระบบ (magic link) ไปที่อีเมล — ใช้ทั้งสมัครและล็อกอิน */
+/** ตรวจกับ Supabase ว่าเปิดผู้ให้บริการนี้แล้วหรือยัง — กันผู้ใช้เจอหน้า JSON error ดิบ ๆ ของ Supabase */
+async function isProviderEnabled(provider: "google"): Promise<boolean> {
+  try {
+    const res = await fetch(`${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
+      cache: "no-store",
+    });
+    if (!res.ok) return false;
+    const settings = (await res.json()) as { external?: Record<string, boolean> };
+    return settings.external?.[provider] === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ล็อกอิน/สมัครด้วย Google — ให้ Google ยืนยันตัวตน เราไม่เก็บรหัสผ่านและไม่ต้องยืนยันอีเมลเอง
+ * ขอเฉพาะข้อมูลพื้นฐาน (ชื่อ อีเมล รูป) ใช้ PKCE: ผู้ใช้กลับมาที่ /auth/callback พร้อม code
+ */
+export async function signInWithGoogle(formData: FormData) {
+  const next = safeNext(formData.get("next")?.toString());
+  if (!(await isProviderEnabled("google"))) redirect("/login?error=provider");
+
+  const db = await authDb();
+  const { data, error } = await db.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`,
+      queryParams: { prompt: "select_account" }, // ให้เลือกบัญชีเสมอ (เครื่องที่ใช้หลายบัญชี Google)
+    },
+  });
+  if (error || !data.url) {
+    console.error("signInWithGoogle:", error?.message ?? "no url");
+    redirect("/login?error=provider");
+  }
+  redirect(data.url);
+}
+
+/** ส่งลิงก์เข้าสู่ระบบ (magic link) ไปที่อีเมล — ใช้ทั้งสมัครและล็อกอิน (ปิดอยู่ถ้า EMAIL_LOGIN_ENABLED=false) */
 export async function requestLoginLink(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  if (!getFlags().emailLoginEnabled) {
+    return { status: "error", message: "ยังไม่เปิดให้เข้าสู่ระบบด้วยอีเมล กรุณาใช้ Google" };
+  }
   const parsed = loginSchema.safeParse({
     email: String(formData.get("email") ?? "")
       .trim()

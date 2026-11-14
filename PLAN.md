@@ -196,7 +196,7 @@ if user มี subscription active     → อนุญาต
 
 ### เฟส 2 — บัญชีผู้ใช้ — M
 
-- [~] สมัคร/ล็อกอิน: อีเมล (magic link) เขียนครบแล้ว (ส่งลิงก์, `/auth/callback`, เซสชัน cookie + `proxy.ts` ต่ออายุ, ออกจากระบบ) ทดสอบกับ Supabase จริงแล้ว (`tests/e2e/auth.spec.ts` 6 ข้อ: เซสชัน, ออกจากระบบ, ลิงก์ใช้ซ้ำไม่ได้, กัน open redirect, ซิงก์, ลบบัญชี; โควตา Supabase `rate_limit_verify` 30 ครั้ง/5 นาที อย่ารันวน) — **ลิงก์อีเมลจริงยังไม่ได้ลอง**: ต้องเพิ่ม `http://localhost:3000/**` ใน Supabase → Authentication → URL Configuration → Redirect URLs; Google ยังไม่ทำ
+- [~] สมัคร/ล็อกอิน: **Google เป็นทางหลัก** (หน้า `/login` การ์ด + ปุ่มตามแนวทางแบรนด์ Google, ชื่อ/รูปจาก Google ใส่โปรไฟล์อัตโนมัติ) โค้ดครบและทดสอบส่วนของเราแล้ว แต่ **ยังไม่ได้ตั้งค่า Google OAuth** (ดูขั้นตอนด้านล่าง) จึงยังล็อกอินด้วย Google จริงไม่ได้; ล็อกอินด้วยอีเมล (magic link) เก็บไว้แต่ปิด (`EMAIL_LOGIN_ENABLED=false`) รอเปิดเป็นทางเสริมภายหลัง — ส่วนอีเมลเขียนครบแล้ว (ส่งลิงก์, `/auth/callback`, เซสชัน cookie + `proxy.ts` ต่ออายุ, ออกจากระบบ) ทดสอบกับ Supabase จริงแล้ว (`tests/e2e/auth.spec.ts` 6 ข้อ: เซสชัน, ออกจากระบบ, ลิงก์ใช้ซ้ำไม่ได้, กัน open redirect, ซิงก์, ลบบัญชี; โควตา Supabase `rate_limit_verify` 30 ครั้ง/5 นาที อย่ารันวน) — **ลิงก์อีเมลจริงยังไม่ได้ลอง**: ต้องเพิ่ม `http://localhost:3000/**` ใน Supabase → Authentication → URL Configuration → Redirect URLs; Google ยังไม่ทำ
 - [x] สร้าง `profiles` อัตโนมัติเมื่อสมัคร (trigger ใน migration แรก; ยังไม่ทดสอบกับผู้ใช้จริง)
 - [~] บันทึก progress: ในเครื่อง (ไม่ล็อกอิน) ทำแล้ว; ซิงก์ขึ้นบัญชีตอนล็อกอิน (รวมแบบไม่ทิ้งของใคร) + ส่งการเปลี่ยนแปลงต่อเนื่อง + ล้างเครื่องตอนออกจากระบบ ทดสอบกับฐานข้อมูลจริงแล้ว (รวมกรณีออกจากระบบเร็วก่อนซิงก์เสร็จ และสลับบัญชีบนเครื่องเดิม)
 - [~] เรื่องที่ชอบ + อ่านต่อ + ห้องสมุด: ทำแบบเก็บในเครื่อง (localStorage) แล้ว; ยังไม่ซิงก์ข้ามเครื่อง (ต้องมีบัญชี + ฐานข้อมูล), ประวัติเต็มรูปแบบยังไม่มี
@@ -349,3 +349,11 @@ if user มี subscription active     → อนุญาต
 
 - ⚠️ **อีเมลล็อกอิน (Supabase ในตัว) ส่งได้ 2 ฉบับ/ชั่วโมงต่อโปรเจกต์** — พอสำหรับพัฒนา ไม่พอสำหรับใช้จริง ก่อนเปิดตัวต้องตั้ง SMTP ของตัวเอง (เช่น Resend/SES) ที่ Supabase → Authentication → SMTP Settings และปรับเทมเพลตอีเมลเป็นภาษาไทย
 - ⚠️ ก่อน deploy: ตั้ง Site URL + Redirect URLs ใน Supabase เป็นโดเมนจริง และ `NEXT_PUBLIC_SITE_URL`
+
+### ตั้งค่า Google Login (ทำครั้งเดียว — ต้องทำด้วยบัญชีเจ้าของเว็บ)
+
+1. **Google Cloud Console** (console.cloud.google.com) → สร้างโปรเจกต์ (เช่น `aandoo`) → **APIs & Services → OAuth consent screen**: User type = External, App name = AanDoo, อีเมลติดต่อ, โลโก้ (ไม่บังคับ), ขอบเขต (scopes) ใช้แค่ `openid`, `email`, `profile` (ไม่ต้องส่งตรวจสอบแอป) แล้วกด **Publish app** ให้ใช้ได้ทุกคน (ถ้าค้างที่ Testing จะล็อกอินได้เฉพาะ test users ที่เพิ่มไว้)
+2. **Credentials → Create credentials → OAuth client ID** → Application type = Web application → **Authorized redirect URIs** ใส่ `https://oriqdtarlztqiqpafbvx.supabase.co/auth/v1/callback` → Create → คัดลอก **Client ID** และ **Client secret**
+3. **Supabase → Authentication → Providers → Google** → Enable → วาง Client ID / Client secret → Save
+4. **Supabase → Authentication → URL Configuration → Redirect URLs** เพิ่ม `http://localhost:3000/**` (ตอน deploy เพิ่มโดเมนจริงด้วย และตั้ง Site URL เป็นโดเมนจริง)
+5. ก่อนเปิดตัว: ใส่ Privacy Policy / Terms URL ใน OAuth consent screen (ต้องมีหน้าจริง — ดูหัวข้อกฎหมายในเฟส 7)

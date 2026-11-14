@@ -16,6 +16,11 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
 
+  // ผู้ใช้กดยกเลิก/ไม่อนุญาตที่หน้า Google → Supabase ส่ง ?error=access_denied กลับมา
+  if (searchParams.get("error") === "access_denied") {
+    return NextResponse.redirect(`${origin}/login?error=denied`);
+  }
+
   const db = await authDb();
   let error: unknown = new Error("ลิงก์ไม่ครบ");
   if (code) {
