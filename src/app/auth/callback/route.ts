@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (error) {
+    // บันทึกเฉพาะรหัส/สถานะ (ไม่บันทึกโทเคนหรืออีเมล) ไว้ไล่ปัญหา เช่น ลิงก์หมดอายุ หรือโดนจำกัดความถี่
+    const e = error as { code?: string; status?: number; message?: string };
+    console.error("auth/callback ล้มเหลว:", e.status ?? "-", e.code ?? e.message);
     return NextResponse.redirect(`${origin}/login?error=1`);
   }
   return NextResponse.redirect(`${origin}${next}`);

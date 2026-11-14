@@ -35,9 +35,11 @@ test("เมนูถูกชุด: มือถือเห็นเมนู
 test("จำนวนปกต่อแถวตามขนาดจอ", async ({ page }) => {
   await page.goto("/browse/novel");
   const width = page.viewportSize()!.width;
-  const cols = await page
-    .locator("main a[href^='/title/']")
-    .evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().left))).size);
+  const cards = page.locator("main a[href^='/title/']");
+  await expect(cards).toHaveCount(3); // รอให้การ์ดครบก่อนวัดตำแหน่ง (รายการสตรีมเข้ามาทีหลัง)
+  const cols = await cards.evaluateAll(
+    (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().left))).size,
+  );
   const expected = width < 480 ? 2 : width < 768 ? 3 : width < 1024 ? 4 : 5;
   // ข้อมูลตัวอย่างมี 3 เรื่อง → คอลัมน์ที่เห็น = min(3, จำนวนคอลัมน์ของจอ)
   expect(cols).toBe(Math.min(3, expected));

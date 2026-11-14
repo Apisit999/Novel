@@ -26,6 +26,8 @@ export interface TestUser {
   email: string;
   /** token_hash สำหรับ /auth/callback — เทียบเท่ากดลิงก์ในอีเมล โดยไม่ต้องส่งอีเมลจริง */
   tokenHash: string;
+  /** ผู้ใช้ใหม่ได้ลิงก์ชนิด signup ผู้ใช้เดิมได้ magiclink — ต้องใช้ชนิดที่ Supabase ออกให้ */
+  linkType: string;
 }
 
 /** สร้างผู้ใช้ทดสอบ + ลิงก์เข้าสู่ระบบ (ลบด้วย deleteUser ตอนจบเทสต์) */
@@ -33,7 +35,12 @@ export async function createTestUser(): Promise<TestUser> {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.invalid`;
   const { data, error } = await admin().auth.admin.generateLink({ type: "magiclink", email });
   if (error || !data.user) throw new Error(`สร้างผู้ใช้ทดสอบไม่ได้: ${error?.message}`);
-  return { id: data.user.id, email, tokenHash: data.properties.hashed_token };
+  return {
+    id: data.user.id,
+    email,
+    tokenHash: data.properties.hashed_token,
+    linkType: data.properties.verification_type,
+  };
 }
 
 export async function deleteUser(id: string) {
@@ -41,4 +48,4 @@ export async function deleteUser(id: string) {
 }
 
 export const callbackUrl = (u: TestUser, next = "/library") =>
-  `/auth/callback?token_hash=${u.tokenHash}&type=magiclink&next=${encodeURIComponent(next)}`;
+  `/auth/callback?token_hash=${u.tokenHash}&type=${u.linkType}&next=${encodeURIComponent(next)}`;

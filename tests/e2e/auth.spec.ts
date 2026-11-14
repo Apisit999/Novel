@@ -8,6 +8,9 @@ import {
   type TestUser,
 } from "./helpers/supabase";
 
+// หมายเหตุโควตา: Supabase จำกัดการยืนยันลิงก์ 30 ครั้ง/5 นาที/IP (rate_limit_verify) ไฟล์นี้ใช้ ~5 ครั้งต่อรอบ
+// → อย่ารันวนติดกันเกิน ~5 รอบใน 5 นาที ถ้าเจอ `429 over_request_rate_limit` ใน log เซิร์ฟเวอร์ให้รอสักครู่
+//
 // ต่อฐานข้อมูลจริงและสร้างผู้ใช้จริง → รันแค่โปรเจกต์เดียว (พฤติกรรมไม่ขึ้นกับขนาดจอ) และข้ามถ้าไม่มี service key
 test.beforeEach(({}, info) => {
   test.skip(info.project.name !== "desktop", "ระบบบัญชีทดสอบบนจอคอมอย่างเดียว");
@@ -31,12 +34,15 @@ test("ไม่ล็อกอิน: /account พาไปหน้าเข้
 test.describe("ล็อกอินจริง (ต้องมี SUPABASE_SERVICE_ROLE_KEY)", () => {
   test.skip(!hasAdmin, "ไม่มี service role key");
   let user: TestUser;
+  let created = false;
 
   test.beforeEach(async () => {
     user = await createTestUser();
+    created = true;
   });
   test.afterEach(async () => {
-    await deleteUser(user.id);
+    if (created) await deleteUser(user.id); // เทสต์ที่ถูกข้ามไม่เคยสร้างผู้ใช้
+    created = false;
   });
 
   test("ลิงก์ในอีเมลสร้างเซสชัน: เห็นอีเมลในหน้าบัญชี และออกจากระบบได้", async ({ page }) => {
@@ -96,9 +102,16 @@ test.describe("ล็อกอินจริง (ต้องมี SUPABASE_SE
         },
       )
       .toBe(1);
-    const progress = await db.from("progress").select("position").eq("user_id", user.id);
-    expect(progress.data).toHaveLength(1);
-    expect(Number(progress.data![0].position)).toBe(40);
+    // ส่งรายการโปรดก่อน แล้วจึงส่งความคืบหน้า → ต้องรอจนความคืบหน้าถึงด้วย
+    await expect
+      .poll(
+        async () => {
+          const r = await db.from("progress").select("position").eq("user_id", user.id);
+          return r.data?.map((x) => Number(x.position));
+        },
+        { timeout: 15_000 },
+      )
+      .toEqual([40]);
 
     // เอาออกจากเรื่องที่ชอบผ่านหน้าเรื่อง → แถวบนเซิร์ฟเวอร์หายตาม
     await page.goto("/title/moonlit-garden");

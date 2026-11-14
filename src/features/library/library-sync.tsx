@@ -5,7 +5,12 @@ import { readLibrary, replaceLibrary, setRemote } from "./local-library";
 import { pullLibrary, pushLibrary, recordProgressRemote, setFavoriteRemote } from "./sync-actions";
 import { EMPTY_LIBRARY, type LibraryData } from "./types";
 
-const MARK = "aandoo:synced-user"; // ผู้ใช้ที่ห้องสมุดในเครื่องนี้ถูกซิงก์ไว้แล้ว
+// เครื่องหมายในเครื่อง 2 อัน (แยกหน้าที่กัน):
+// OWNER  = ผู้ใช้ที่ข้อมูลห้องสมุดในเครื่องนี้ "เป็นของ" — ตั้งทันทีที่ล็อกอิน ใช้ตัดสินว่าต้องล้างตอนออกจากระบบ
+//          (ต้องไม่รอซิงก์เสร็จ ไม่งั้นออกเร็ว ๆ แล้วข้อมูลค้างในเครื่องที่ใช้ร่วมกัน)
+// SYNCED = ผู้ใช้ที่ซิงก์ขึ้น/ลงสำเร็จแล้ว — ใช้ตัดสินว่าต้องส่งของในเครื่องขึ้นบัญชีอีกไหม
+const OWNER = "aandoo:library-owner";
+const SYNCED = "aandoo:synced-user";
 const PROGRESS_DELAY_MS = 2500; // หน่วงการส่งความคืบหน้า ไม่ยิงทุกครั้งที่เลื่อน
 
 /** ผลลัพธ์ที่เบราว์เซอร์ควรเก็บ: รายการโปรดตามบัญชี, ความคืบหน้าฝั่งไหนใหม่กว่าชนะ */
@@ -27,12 +32,21 @@ export function LibrarySync({ userId }: { userId: string | null }) {
   useEffect(() => {
     if (!userId) {
       setRemote(null);
-      if (localStorage.getItem(MARK)) {
+      if (localStorage.getItem(OWNER)) {
         replaceLibrary(EMPTY_LIBRARY);
-        localStorage.removeItem(MARK);
+        localStorage.removeItem(OWNER);
+        localStorage.removeItem(SYNCED);
       }
       return;
     }
+
+    // ข้อมูลในเครื่องเป็นของคนอื่น (สลับบัญชีโดยไม่ได้ออกจากระบบ) → ห้ามรวมเข้าบัญชีนี้ ล้างทิ้ง
+    const owner = localStorage.getItem(OWNER);
+    if (owner && owner !== userId) {
+      replaceLibrary(EMPTY_LIBRARY);
+      localStorage.removeItem(SYNCED);
+    }
+    localStorage.setItem(OWNER, userId);
 
     const timers = new Map<string, ReturnType<typeof setTimeout>>();
     let cancelled = false;
@@ -52,11 +66,11 @@ export function LibrarySync({ userId }: { userId: string | null }) {
     });
 
     (async () => {
-      if (localStorage.getItem(MARK) !== userId) await pushLibrary(readLibrary());
+      if (localStorage.getItem(SYNCED) !== userId) await pushLibrary(readLibrary());
       const server = await pullLibrary();
       if (cancelled || !server) return;
       replaceLibrary(merge(readLibrary(), server));
-      localStorage.setItem(MARK, userId);
+      localStorage.setItem(SYNCED, userId);
     })().catch(() => {});
 
     return () => {
