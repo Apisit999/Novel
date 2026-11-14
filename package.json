@@ -17,7 +17,8 @@
     "db:push": "supabase db push --remote",
     "db:types:remote": "supabase gen types typescript --remote > src/types/database.ts",
     "db:link": "supabase link",
-    "test:db": "vitest run --config vitest.db.config.mts"
+    "test:db": "vitest run --config vitest.db.config.mts",
+    "make-admin": "node scripts/make-admin.mjs"
   },
   "dependencies": {
     "@fontsource/noto-serif-thai": "^5.3.0",

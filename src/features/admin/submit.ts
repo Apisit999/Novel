@@ -1,0 +1,15 @@
+import { startTransition, type FormEvent } from "react";
+
+/**
+ * ส่งฟอร์มให้ Server Action โดย "ไม่ล้างช่องกรอก"
+ * (<form action={fn}> ของ React 19 รีเซ็ตทุกช่องหลังส่ง แม้ส่งไม่ผ่านตรวจสอบ —
+ *  แอดมินที่พิมพ์เนื้อหาตอนยาว ๆ แล้ว slug/เลขตอนผิด จะเสียข้อความที่พิมพ์ไปทั้งหมด)
+ * ผลลัพธ์/ข้อผิดพลาดยังมาทาง useActionState ตามเดิม
+ */
+export function submitKeepingValues(action: (formData: FormData) => void) {
+  return (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => action(formData));
+  };
+}

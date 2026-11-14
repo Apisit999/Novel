@@ -49,3 +49,14 @@ export async function deleteUser(id: string) {
 
 export const callbackUrl = (u: TestUser, next = "/library") =>
   `/auth/callback?token_hash=${u.tokenHash}&type=${u.linkType}&next=${encodeURIComponent(next)}`;
+
+/** ตั้งผู้ใช้ทดสอบเป็นแอดมิน (ทำผ่าน service role — เหมือนสคริปต์ make-admin) */
+export async function makeAdmin(id: string) {
+  const { error } = await admin().from("profiles").update({ role: "admin" }).eq("id", id);
+  if (error) throw new Error(`ตั้งแอดมินไม่ได้: ${error.message}`);
+}
+
+/** เก็บกวาดเรื่องทดสอบ (ลบแล้ว FK cascade ลบตอน/เนื้อหา/คำแปลตามไปเอง) */
+export async function deleteTitleBySlug(slug: string) {
+  await admin().from("titles").delete().eq("slug", slug);
+}

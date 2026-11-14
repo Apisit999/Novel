@@ -29,6 +29,8 @@ const ep = {
   premButFreeEp: randomUUID(), // เรื่อง premium แต่ตอนตั้ง free
   unpublishedTitle: randomUUID(), // เรื่องยังไม่เผยแพร่
   draft: randomUUID(), // ตอน draft ในเรื่องฟรี
+  scheduledPast: randomUUID(), // ตั้งเวลาไว้ และเลยเวลาแล้ว → ต้องมองเห็น
+  scheduledFuture: randomUUID(), // ตั้งเวลาไว้ ยังไม่ถึง → ต้องซ่อน
 };
 const allEpisodes = Object.values(ep);
 
@@ -68,8 +70,14 @@ const names = (idsList: string[]) =>
     .map(([k]) => k)
     .sort();
 
-const FREE_ONLY = ["freeInherit", "premButFreeEp"].sort();
-const ALL_PUBLISHED = ["freeInherit", "freeButPremiumEp", "premInherit", "premButFreeEp"].sort();
+const FREE_ONLY = ["freeInherit", "premButFreeEp", "scheduledPast"].sort();
+const ALL_PUBLISHED = [
+  "freeInherit",
+  "freeButPremiumEp",
+  "premInherit",
+  "premButFreeEp",
+  "scheduledPast",
+].sort();
 const EVERYTHING = Object.keys(ep).sort();
 
 async function setPaywall(on: boolean) {
@@ -128,6 +136,17 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
     await episode(ep.freeInherit, free, 1, "inherit");
     await episode(ep.freeButPremiumEp, free, 2, "premium");
     await episode(ep.draft, free, 3, "inherit", "draft");
+    // ตั้งเวลา: ต้องระบุ publish_at (มี constraint) — เลยเวลาแล้ว vs ยังไม่ถึง
+    for (const [id, n, when] of [
+      [ep.scheduledPast, 4, "now() - interval '1 hour'"],
+      [ep.scheduledFuture, 5, "now() + interval '1 hour'"],
+    ] as const) {
+      await db.query(
+        `insert into episodes (id, title_id, number, name, access, status, publish_at)
+         values ($1, $2, $3, 'ep', 'inherit', 'scheduled', ${when})`,
+        [id, free, n],
+      );
+    }
     await episode(ep.premInherit, prem, 1, "inherit");
     await episode(ep.premButFreeEp, prem, 2, "free");
     await episode(ep.unpublishedTitle, hidden, 1, "inherit");
@@ -213,6 +232,30 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
           db.query(`insert into titles (type, slug, name) values ('novel', 'hack-${tag}', 'x')`),
         ),
       ).rejects.toThrow(/row-level security|permission denied/);
+      await db.query("rollback to savepoint s");
+    });
+    it("ตอนที่ตั้งเวลา: เลยเวลาแล้วเห็น ยังไม่ถึงไม่เห็น (แอดมินเห็นทั้งหมด)", async () => {
+      const visible = async (who: Who) =>
+        (
+          await as(who, () =>
+            db.query(`select id from episodes where id = any($1::uuid[])`, [
+              [ep.scheduledPast, ep.scheduledFuture],
+            ]),
+          )
+        ).rows.map((r) => r.id);
+      expect(await visible("anon")).toEqual([ep.scheduledPast]);
+      expect((await visible("admin")).sort()).toEqual(
+        [ep.scheduledPast, ep.scheduledFuture].sort(),
+      );
+    });
+    it("ตั้งสถานะ scheduled โดยไม่ระบุเวลาไม่ได้ (constraint)", async () => {
+      await db.query("savepoint s");
+      await expect(
+        db.query(
+          `insert into episodes (title_id, number, name, status) select id, 99, 'x', 'scheduled' from titles where slug = $1`,
+          [`rls-free-${tag}`],
+        ),
+      ).rejects.toThrow(/episodes_scheduled_needs_time/);
       await db.query("rollback to savepoint s");
     });
     it("รายการตอนที่เป็น draft ผู้เยี่ยมชมไม่เห็น", async () => {

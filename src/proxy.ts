@@ -8,7 +8,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * - ไม่ตัดสินสิทธิ์ที่นี่ — สิทธิ์ตัดสินที่ RLS/can_access เท่านั้น
  */
 export async function proxy(request: NextRequest) {
-  if (!request.cookies.getAll().some((c) => c.name.startsWith("sb-"))) {
+  const hasSession = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+  if (!hasSession) {
+    // หลังบ้าน: ไม่มีเซสชันเลย → ส่งไปล็อกอินทันที (ชั้นนอก; สิทธิ์แอดมินจริงตรวจในหน้า/action และ RLS)
+    if (request.nextUrl.pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL("/login?next=/admin", request.url));
+    }
     return NextResponse.next();
   }
 
@@ -27,7 +32,25 @@ export async function proxy(request: NextRequest) {
       },
     },
   );
-  await supabase.auth.getUser(); // ตรวจ + ต่ออายุ แล้ว setAll ด้านบนจะเขียน cookie ใหม่
+  const { data } = await supabase.auth.getUser(); // ตรวจ + ต่ออายุ แล้ว setAll ด้านบนจะเขียน cookie ใหม่
+
+  // หลังบ้าน: ต้องตัดสินก่อนเรนเดอร์ จึงจะได้รหัสตอบกลับจริง (หน้าที่สตรีมแล้วเปลี่ยนจาก 200 ไม่ได้)
+  // นี่คือชั้นนอกเพื่อ UX/ไม่เปิดเผยว่ามีหลังบ้าน — ชั้นที่ตัดสินจริงคือ requireAdmin() ในหน้า/action และ RLS
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    if (!data.user) {
+      return NextResponse.redirect(new URL("/login?next=/admin", request.url));
+    }
+    const profile = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    if (profile.data?.role !== "admin") {
+      const notFound = NextResponse.rewrite(new URL("/__not-found", request.url), { status: 404 });
+      for (const c of response.cookies.getAll()) notFound.cookies.set(c); // เก็บ cookie ที่เพิ่งต่ออายุไว้
+      return notFound;
+    }
+  }
   return response;
 }
 

@@ -36,13 +36,14 @@ test("จำนวนปกต่อแถวตามขนาดจอ", async
   await page.goto("/browse/novel");
   const width = page.viewportSize()!.width;
   const cards = page.locator("main a[href^='/title/']");
-  await expect(cards).toHaveCount(3); // รอให้การ์ดครบก่อนวัดตำแหน่ง (รายการสตรีมเข้ามาทีหลัง)
+  await expect(cards.nth(2)).toBeVisible(); // รอให้การ์ดมาครบอย่างน้อย 3 ใบ (รายการสตรีมเข้ามาทีหลัง)
+  const count = await cards.count(); // เทสต์อื่นอาจเพิ่มเรื่องในฐานข้อมูลเดียวกัน จึงไม่ล็อกจำนวนตายตัว
   const cols = await cards.evaluateAll(
     (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().left))).size,
   );
   const expected = width < 480 ? 2 : width < 768 ? 3 : width < 1024 ? 4 : 5;
-  // ข้อมูลตัวอย่างมี 3 เรื่อง → คอลัมน์ที่เห็น = min(3, จำนวนคอลัมน์ของจอ)
-  expect(cols).toBe(Math.min(3, expected));
+  // คอลัมน์ที่เห็น = min(จำนวนการ์ด, จำนวนคอลัมน์ของจอ)
+  expect(cols).toBe(Math.min(count, expected));
 });
 
 test("เป้ากดหลักสูงอย่างน้อย 44px", async ({ page }) => {
