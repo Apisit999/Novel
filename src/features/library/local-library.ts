@@ -1,30 +1,31 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
+import { EMPTY_LIBRARY, type LibraryData } from "./types";
 
 /**
  * ห้องสมุดในเครื่อง: เรื่องที่ชอบ + ตำแหน่งที่อ่านค้าง เก็บใน localStorage
- * (ผู้ใช้ที่ยังไม่ล็อกอิน) — เฟส 2 เมื่อมีบัญชี จะย้ายขึ้นเซิร์ฟเวอร์ตอนล็อกอิน
+ * - ผู้ใช้ที่ยังไม่ล็อกอิน: อยู่ในเครื่องนี้อย่างเดียว
+ * - ล็อกอินแล้ว: LibrarySync ตั้ง "จุดเชื่อมไปเซิร์ฟเวอร์" (setRemote) ให้ทุกการเปลี่ยนแปลงถูกส่งขึ้นบัญชีด้วย
+ *   และใช้ localStorage เป็นแคชให้หน้าเว็บอ่านได้ทันทีไม่ต้องรอเครือข่าย
  */
 const KEY = "aandoo:library:v1";
 const EVENT = "aandoo:library-change";
 
-export interface ReadProgress {
-  number: number;
-  /** 0–100 ของตอนนั้น */
-  percent: number;
-  updatedAt: number;
+export type { LibraryData, ReadProgress } from "./types";
+
+export interface RemoteHooks {
+  setFavorite: (slug: string, on: boolean) => void;
+  recordProgress: (slug: string, number: number, percent: number) => void;
 }
 
-export interface LibraryData {
-  favorites: string[];
-  progress: Record<string, ReadProgress>;
+let remote: RemoteHooks | null = null;
+export function setRemote(hooks: RemoteHooks | null) {
+  remote = hooks;
 }
-
-const EMPTY: LibraryData = { favorites: [], progress: {} };
 
 function parse(raw: string): LibraryData {
-  if (!raw) return EMPTY;
+  if (!raw) return EMPTY_LIBRARY;
   try {
     const v = JSON.parse(raw) as Partial<LibraryData>;
     return {
@@ -32,7 +33,7 @@ function parse(raw: string): LibraryData {
       progress: v.progress && typeof v.progress === "object" ? v.progress : {},
     };
   } catch {
-    return EMPTY; // ข้อมูลเสีย → เริ่มใหม่ ไม่ให้หน้าพัง
+    return EMPTY_LIBRARY; // ข้อมูลเสีย → เริ่มใหม่ ไม่ให้หน้าพัง
   }
 }
 
@@ -68,6 +69,16 @@ export function useLibrary(): LibraryData {
   return useMemo(() => parse(raw), [raw]);
 }
 
+/** อ่านค่าปัจจุบันครั้งเดียว (ไม่ reactive) — สำหรับตัวซิงก์ */
+export function readLibrary(): LibraryData {
+  return parse(readRaw());
+}
+
+/** แทนที่ทั้งก้อน (ตอนดึงจากบัญชี หรือเคลียร์ตอนออกจากระบบ) — ไม่ส่งขึ้นเซิร์ฟเวอร์ซ้ำ */
+export function replaceLibrary(data: LibraryData) {
+  write(data);
+}
+
 export function toggleFavorite(slug: string) {
   const data = parse(readRaw());
   const has = data.favorites.includes(slug);
@@ -75,19 +86,15 @@ export function toggleFavorite(slug: string) {
     ...data,
     favorites: has ? data.favorites.filter((s) => s !== slug) : [slug, ...data.favorites],
   });
+  remote?.setFavorite(slug, !has);
 }
 
 export function saveProgress(slug: string, number: number, percent: number) {
+  const rounded = Math.max(0, Math.min(100, Math.round(percent)));
   const data = parse(readRaw());
   write({
     ...data,
-    progress: {
-      ...data.progress,
-      [slug]: {
-        number,
-        percent: Math.max(0, Math.min(100, Math.round(percent))),
-        updatedAt: Date.now(),
-      },
-    },
+    progress: { ...data.progress, [slug]: { number, percent: rounded, updatedAt: Date.now() } },
   });
+  remote?.recordProgress(slug, number, rounded);
 }

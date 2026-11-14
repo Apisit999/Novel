@@ -6,6 +6,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BottomNav, BottomNavLinks } from "@/components/bottom-nav";
 import { CONTENT_TYPES } from "@/content-types/registry";
+import { LibrarySync } from "@/features/library/library-sync";
+import { getCurrentUser } from "@/server/auth-db";
 import "./globals.css";
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
@@ -46,6 +48,12 @@ const NAV_ITEMS = [
   { href: "/library", label: "ของฉัน" },
 ];
 
+/** บอกตัวซิงก์ว่าใครล็อกอินอยู่ (ไม่แสดงอะไร) */
+async function SessionSync() {
+  const user = await getCurrentUser();
+  return <LibrarySync userId={user?.id ?? null} />;
+}
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={SITE.lang} suppressHydrationWarning>
@@ -58,6 +66,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        <Suspense fallback={null}>
+          <SessionSync />
+        </Suspense>
         <Suspense fallback={<BottomNavLinks items={NAV_ITEMS} pathname="" />}>
           <BottomNav items={NAV_ITEMS} />
         </Suspense>

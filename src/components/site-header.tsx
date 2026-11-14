@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { SITE } from "@/lib/site";
 import { CONTENT_TYPES } from "@/content-types/registry";
+import { Suspense } from "react";
+import { AccountButton, AccountButtonFallback } from "@/components/account-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const iconBtn =
@@ -54,6 +56,9 @@ export function SiteHeader() {
             </svg>
           </Link>
           <ThemeToggle />
+          <Suspense fallback={<AccountButtonFallback />}>
+            <AccountButton />
+          </Suspense>
         </div>
       </div>
     </header>
