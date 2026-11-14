@@ -15,13 +15,50 @@ const EVENT = "aandoo:library-change";
 export type { LibraryData, ReadProgress } from "./types";
 
 export interface RemoteHooks {
-  setFavorite: (slug: string, on: boolean) => void;
+  setFavorite: (slug: string, on: boolean) => void | Promise<void>;
   recordProgress: (slug: string, number: number, percent: number) => void;
 }
 
 let remote: RemoteHooks | null = null;
-export function setRemote(hooks: RemoteHooks | null) {
+
+/**
+ * การกดที่เกิด "ก่อน" ตัวซิงก์รู้ว่าใครล็อกอิน (ก่อน hydrate/ก่อนโหลดเซสชันเสร็จ) ต้องไม่หายไป:
+ * เก็บเป็นคิวในหน่วยความจำ แล้วส่งขึ้นบัญชีทันทีที่ setRemote(hooks) — ถ้าไม่ได้ล็อกอินให้ discardPending()
+ * (เดิมการกดช่วงนี้ถูกบันทึกแค่ในเครื่อง แล้วถูกข้อมูลจากบัญชีที่ดึงลงมาทับหายเงียบ ๆ)
+ */
+type PendingOp =
+  | { kind: "favorite"; slug: string; on: boolean }
+  | { kind: "progress"; slug: string; number: number; percent: number };
+let pending: PendingOp[] = [];
+const MAX_PENDING = 200;
+
+function enqueue(op: PendingOp) {
+  if (op.kind === "progress") {
+    // ความคืบหน้าเก็บเฉพาะค่าล่าสุดของแต่ละเรื่อง
+    pending = pending.filter((p) => !(p.kind === "progress" && p.slug === op.slug));
+  }
+  pending.push(op);
+  if (pending.length > MAX_PENDING) pending.shift();
+}
+
+/** ตั้ง/ถอนจุดเชื่อมไปบัญชี — คืน Promise ที่เสร็จเมื่อการกดที่ค้างคิวถูกส่งครบแล้ว */
+export function setRemote(hooks: RemoteHooks | null): Promise<void> {
   remote = hooks;
+  if (!hooks) return Promise.resolve();
+  const ops = pending;
+  pending = [];
+  return Promise.all(
+    ops.map((op) =>
+      op.kind === "favorite"
+        ? hooks.setFavorite(op.slug, op.on)
+        : hooks.recordProgress(op.slug, op.number, op.percent),
+    ),
+  ).then(() => undefined);
+}
+
+/** ทิ้งคิวที่ค้าง (ผู้ใช้ไม่ได้ล็อกอิน ไม่มีที่ต้องส่ง) */
+export function discardPending() {
+  pending = [];
 }
 
 function parse(raw: string): LibraryData {
@@ -86,7 +123,8 @@ export function toggleFavorite(slug: string) {
     ...data,
     favorites: has ? data.favorites.filter((s) => s !== slug) : [slug, ...data.favorites],
   });
-  remote?.setFavorite(slug, !has);
+  if (remote) void remote.setFavorite(slug, !has);
+  else enqueue({ kind: "favorite", slug, on: !has });
 }
 
 export function saveProgress(slug: string, number: number, percent: number) {
@@ -96,5 +134,6 @@ export function saveProgress(slug: string, number: number, percent: number) {
     ...data,
     progress: { ...data.progress, [slug]: { number, percent: rounded, updatedAt: Date.now() } },
   });
-  remote?.recordProgress(slug, number, rounded);
+  if (remote) remote.recordProgress(slug, number, rounded);
+  else enqueue({ kind: "progress", slug, number, percent: rounded });
 }

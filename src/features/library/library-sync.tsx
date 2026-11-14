@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { readLibrary, replaceLibrary, setRemote } from "./local-library";
+import { discardPending, readLibrary, replaceLibrary, setRemote } from "./local-library";
 import { pullLibrary, pushLibrary, recordProgressRemote, setFavoriteRemote } from "./sync-actions";
 import { EMPTY_LIBRARY, type LibraryData } from "./types";
 
@@ -31,7 +31,8 @@ function merge(local: LibraryData, server: LibraryData): LibraryData {
 export function LibrarySync({ userId }: { userId: string | null }) {
   useEffect(() => {
     if (!userId) {
-      setRemote(null);
+      void setRemote(null);
+      discardPending(); // ไม่ได้ล็อกอิน: การกดที่ค้างคิวไม่มีที่ให้ส่ง
       if (localStorage.getItem(OWNER)) {
         replaceLibrary(EMPTY_LIBRARY);
         localStorage.removeItem(OWNER);
@@ -50,9 +51,15 @@ export function LibrarySync({ userId }: { userId: string | null }) {
 
     const timers = new Map<string, ReturnType<typeof setTimeout>>();
     let cancelled = false;
+    // การกดชอบ/เลิกชอบที่เกิดระหว่างซิงก์: ข้อมูลที่ดึงลงมาอาจเก่ากว่าการกดนั้น จึงต้องนำมาทับกลับหลังดึงเสร็จ
+    const touched = new Map<string, boolean>();
+    let syncing = true;
 
-    setRemote({
-      setFavorite: (slug, on) => void setFavoriteRemote(slug, on).catch(() => {}),
+    const flushed = setRemote({
+      setFavorite: (slug, on) => {
+        if (syncing) touched.set(slug, on);
+        return setFavoriteRemote(slug, on).catch(() => {});
+      },
       recordProgress: (slug, number, percent) => {
         clearTimeout(timers.get(slug));
         timers.set(
@@ -66,16 +73,22 @@ export function LibrarySync({ userId }: { userId: string | null }) {
     });
 
     (async () => {
+      await flushed; // ส่งการกดที่เกิดก่อนซิงก์พร้อมให้เสร็จก่อน ไม่งั้นข้อมูลที่ดึงมาจะไม่มีการกดนั้น
       if (localStorage.getItem(SYNCED) !== userId) await pushLibrary(readLibrary());
       const server = await pullLibrary();
+      syncing = false;
       if (cancelled || !server) return;
+      for (const [slug, on] of touched) {
+        const rest = server.favorites.filter((f) => f !== slug);
+        server.favorites = on ? [slug, ...rest] : rest;
+      }
       replaceLibrary(merge(readLibrary(), server));
       localStorage.setItem(SYNCED, userId);
     })().catch(() => {});
 
     return () => {
       cancelled = true;
-      setRemote(null);
+      void setRemote(null);
       timers.forEach(clearTimeout);
     };
   }, [userId]);
