@@ -47,3 +47,7 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# Supabase CLI ชั่วคราว (มีข้อมูลโปรเจกต์ที่เชื่อมอยู่)
+supabase/.temp/
+supabase/.branches/
