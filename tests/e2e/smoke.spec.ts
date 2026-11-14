@@ -9,10 +9,8 @@ test("หน้าแรกเปิดได้และมีชื่อเ�
 test("เมนูหมวดพาไปหน้า browse ของแต่ละประเภท", async ({ page }) => {
   await page.goto("/");
   for (const label of ["นิยาย", "มังงะ", "วิดีโอ"]) {
-    await page
-      .getByRole("navigation", { name: "หมวดเนื้อหา" })
-      .getByRole("link", { name: label })
-      .click();
+    // เมนูมี 2 ชุด (บน = จอ md+, ล่าง = มือถือ) แต่ละจอเห็นชุดเดียว
+    await page.getByRole("navigation").getByRole("link", { name: label, exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(label);
   }
 });

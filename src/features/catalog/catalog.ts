@@ -147,3 +147,18 @@ export async function getNovelEpisode(
 ): Promise<NovelEpisode | undefined> {
   return CATALOG.find((t) => t.slug === slug)?.novelEpisodes.find((e) => e.number === number);
 }
+
+/** ค้นหาจากชื่อ เรื่องย่อ และแท็ก ข้ามทุกประเภท (ตอนนี้จับคำตรง ๆ; ค้นหาไทยจริงจังรอเฟส 6) */
+export async function searchTitles(query: string): Promise<TitleSummary[]> {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return CATALOG.filter((t) =>
+    [t.name, t.synopsis, ...t.tags].some((s) => s.toLowerCase().includes(q)),
+  ).map(toSummary);
+}
+
+/** เรื่องเด่นหน้าแรก (เฟส 3 ให้แอดมินเลือกเอง) */
+export async function getFeatured(): Promise<TitleSummary | undefined> {
+  const entry = CATALOG.find((t) => t.type === "novel" && t.access === "premium") ?? CATALOG[0];
+  return entry && toSummary(entry);
+}

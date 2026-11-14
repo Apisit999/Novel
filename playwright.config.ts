@@ -9,7 +9,17 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL: `http://localhost:${PORT}`, trace: "on-first-retry" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    {
+      name: "tablet",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, hasTouch: true },
+    },
+    {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
+  ],
   // ทดสอบกับเวอร์ชัน build จริง (ใกล้เคียง production)
   webServer: {
     command: `npm run build && npx next start -p ${PORT}`,

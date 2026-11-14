@@ -1,8 +1,13 @@
-import type { Metadata } from "next";
+import { Suspense } from "react";
+import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { BottomNav, BottomNavLinks } from "@/components/bottom-nav";
+import { CONTENT_TYPES } from "@/content-types/registry";
 import "./globals.css";
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export const metadata: Metadata = {
   title: { default: SITE.name, template: `%s | ${SITE.name}` },
@@ -25,16 +30,27 @@ const initScript = `
 })();
 `;
 
+const NAV_ITEMS = [
+  { href: "/", label: "หน้าแรก" },
+  ...CONTENT_TYPES.map((t) => ({ href: `/browse/${t.id}`, label: t.label })),
+  { href: "/library", label: "ของฉัน" },
+];
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={SITE.lang} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: initScript }} />
       </head>
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-dvh flex-col pb-14 md:pb-0">
         <SiteHeader />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          {children}
+        </main>
         <SiteFooter />
+        <Suspense fallback={<BottomNavLinks items={NAV_ITEMS} pathname="" />}>
+          <BottomNav items={NAV_ITEMS} />
+        </Suspense>
       </body>
     </html>
   );

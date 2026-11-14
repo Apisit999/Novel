@@ -3,12 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CONTENT_TYPES, getContentType } from "@/content-types/registry";
 import { listTags, listTitles, type TitleStatus } from "@/features/catalog/catalog";
-
-const STATUS_LABEL: Record<TitleStatus, string> = {
-  ongoing: "กำลังอัปเดต",
-  completed: "จบแล้ว",
-  hiatus: "พักการอัปเดต",
-};
+import { STATUS_LABEL, TitleCard, TitleGrid } from "@/features/catalog/title-card";
 
 export function generateStaticParams() {
   return CONTENT_TYPES.map((t) => ({ type: t.id }));
@@ -75,17 +70,13 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
       {titles.length === 0 ? (
         <p className="text-muted mt-4">ไม่พบ{def.label}ที่ตรงเงื่อนไข</p>
       ) : (
-        <ul className="mt-4 space-y-3">
-          {titles.map((t) => (
-            <li key={t.slug}>
-              <Link href={`/title/${t.slug}`} className="text-accent font-semibold">
-                {t.name}
-              </Link>
-              <span className="text-muted text-sm"> · {STATUS_LABEL[t.status]}</span>
-              <p className="text-muted text-sm">{t.synopsis}</p>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-6">
+          <TitleGrid>
+            {titles.map((t) => (
+              <TitleCard key={t.slug} title={t} />
+            ))}
+          </TitleGrid>
+        </div>
       )}
     </>
   );

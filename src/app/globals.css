@@ -10,12 +10,12 @@
 
 /* ===== ธีม: เปลี่ยนค่าตรงนี้ที่เดียว ทั้งเว็บเปลี่ยนตาม ===== */
 :root {
-  --background: #faf8f4;
-  --surface: #ffffff;
-  --foreground: #222222;
-  --muted: #6b6b6b;
-  --border: #e4dfd5;
-  --accent: #b4533a;
+  --background: #f7f2e9;
+  --surface: #fffcf6;
+  --foreground: #3a2e22;
+  --muted: #65513e;
+  --border: #e3d6c2;
+  --accent: #9a5a34;
   --accent-foreground: #ffffff;
   --read-size: 1.2rem;
   color-scheme: light;
@@ -69,4 +69,28 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* ขนาดตัวอักษรพื้นฐาน 18px — ผู้ใช้ทุกวัย; หน่วย rem ทั้งเว็บจะขยายตาม */
+html {
+  font-size: 112.5%;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ช่องกรอกต้อง ≥16px ไม่งั้น iOS ซูมหน้าเอง (18px ผ่านอยู่แล้ว) */
+input,
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
