@@ -53,12 +53,11 @@ async function as<T>(who: Who, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-async function readable(who: Who): Promise<string[]> {
+async function readable(who: Who, table = "novel_bodies"): Promise<string[]> {
   return as(who, async () => {
-    const r = await db.query(
-      "select episode_id from novel_bodies where episode_id = any($1::uuid[])",
-      [allEpisodes],
-    );
+    const r = await db.query(`select episode_id from ${table} where episode_id = any($1::uuid[])`, [
+      allEpisodes,
+    ]);
     return r.rows.map((x) => x.episode_id as string);
   });
 }
@@ -134,6 +133,10 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
     await episode(ep.unpublishedTitle, hidden, 1, "inherit");
     for (const id of allEpisodes) {
       await db.query(`insert into novel_bodies (episode_id, body_markdown) values ($1, 'x')`, [id]);
+      await db.query(
+        `insert into novel_translations (episode_id, lang, body_markdown) values ($1, 'en', 'x')`,
+        [id],
+      );
     }
   });
 
@@ -162,6 +165,11 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
     });
     it("past_due ไม่ให้สิทธิ์", async () => {
       expect(names(await readable("subPastDue"))).toEqual(FREE_ONLY);
+    });
+    it("คำแปลใช้สิทธิ์เดียวกับเนื้อหาต้นฉบับ (ผู้เยี่ยมชมไม่เห็นคำแปลตอน premium)", async () => {
+      expect(names(await readable("anon", "novel_translations"))).toEqual(FREE_ONLY);
+      expect(names(await readable("subActive", "novel_translations"))).toEqual(ALL_PUBLISHED);
+      expect(names(await readable("admin", "novel_translations"))).toEqual(EVERYTHING);
     });
     it("แอดมินเห็นทุกอย่าง รวม draft และเรื่องที่ยังไม่เผยแพร่", async () => {
       expect(names(await readable("admin"))).toEqual(EVERYTHING);

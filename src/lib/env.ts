@@ -23,7 +23,6 @@ const flag = (fallback: boolean) =>
 
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-  PAYWALL_ENABLED: flag(false),
   SIGNUP_ENABLED: flag(true),
 });
 

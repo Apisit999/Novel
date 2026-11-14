@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
-import { getFlags } from "@/lib/flags";
+import { isPaywallEnabled } from "@/features/access/paywall";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CONTENT_TYPES, getContentType } from "@/content-types/registry";
@@ -34,7 +34,7 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
 
   const tag = typeof query.tag === "string" ? query.tag : undefined;
   const status = parseStatus(query.status);
-  const showPremium = getFlags().paywallEnabled;
+  const showPremium = await isPaywallEnabled();
   const [titles, tags] = await Promise.all([listTitles(def.id, { tag, status }), listTags(def.id)]);
 
   const href = (next: { tag?: string; status?: string }) => {

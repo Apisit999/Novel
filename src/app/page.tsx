@@ -5,12 +5,12 @@ import { SearchForm } from "@/components/search-form";
 import { getFeatured, listAllTitles, listTitles } from "@/features/catalog/catalog";
 import { FavoriteButton } from "@/features/library/library-actions";
 import { ContinueStrip } from "@/features/library/library-view";
-import { getFlags } from "@/lib/flags";
+import { isPaywallEnabled } from "@/features/access/paywall";
 import { coverColor } from "@/features/catalog/cover";
 import { STATUS_LABEL, TitleCard, TitleGrid } from "@/features/catalog/title-card";
 
 export default async function HomePage() {
-  const showPremium = getFlags().paywallEnabled;
+  const showPremium = await isPaywallEnabled();
   const [featured, allTitles, sections] = await Promise.all([
     getFeatured(),
     listAllTitles(),

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getFlags } from "@/lib/flags";
+import { isPaywallEnabled } from "@/features/access/paywall";
 import { SearchForm } from "@/components/search-form";
 import { searchTitles } from "@/features/catalog/catalog";
 import { TitleCard, TitleGrid } from "@/features/catalog/title-card";
@@ -8,7 +8,7 @@ async function Results({ searchParams }: { searchParams: PageProps<"/search">["s
   const { q } = await searchParams;
   const query = typeof q === "string" ? q : "";
   const results = await searchTitles(query);
-  const showPremium = getFlags().paywallEnabled;
+  const showPremium = await isPaywallEnabled();
 
   return (
     <>

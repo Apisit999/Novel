@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { canAccess, effectiveAccess } from "@/features/access/can-access";
 import { getNovelEpisode, getTitle, listEpisodes } from "@/features/catalog/catalog";
 import { NovelReader, type ReaderBody, type ReaderLang } from "@/features/reader/novel-reader";
-import { getFlags } from "@/lib/flags";
+import { isPaywallEnabled } from "@/features/access/paywall";
 
 export async function generateMetadata({
   params,
@@ -39,7 +39,7 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
     titleAccess: title.access,
     episodeAccess: meta.access,
     user: null, // เฟส 2 จะดึงผู้ใช้จริง
-    paywallEnabled: getFlags().paywallEnabled,
+    paywallEnabled: await isPaywallEnabled(),
   });
 
   if (!decision.allowed) {

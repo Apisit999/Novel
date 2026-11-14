@@ -2,14 +2,13 @@ import "server-only";
 import { parseServerEnv } from "@/lib/env";
 
 /**
- * Feature flags (ฝั่งเซิร์ฟเวอร์เท่านั้น)
- * - paywallEnabled=false → ทุกเนื้อหาเปิดฟรี (ช่วงเปิดตัว)
- * - เปิดเก็บเงินภายหลังด้วยการตั้ง PAYWALL_ENABLED=true โดยไม่ต้องแก้โค้ด
+ * Feature flags ฝั่งเซิร์ฟเวอร์ที่มาจาก env
+ * หมายเหตุ: สวิตช์ paywall ไม่อยู่ที่นี่ — ต้นทางเดียวคือตาราง app_settings ในฐานข้อมูล
+ * (ดู isPaywallEnabled ใน src/features/access/paywall.ts) เพื่อให้ตรงกับ RLS เสมอ
  */
 export function getFlags() {
   const env = parseServerEnv(process.env);
   return {
-    paywallEnabled: env.PAYWALL_ENABLED,
     signupEnabled: env.SIGNUP_ENABLED,
   };
 }

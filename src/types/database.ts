@@ -156,6 +156,39 @@ export type Database = {
           },
         ];
       };
+      novel_translations: {
+        Row: {
+          body_markdown: string;
+          episode_id: string;
+          lang: string;
+          machine: boolean;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          body_markdown?: string;
+          episode_id: string;
+          lang: string;
+          machine?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          body_markdown?: string;
+          episode_id?: string;
+          lang?: string;
+          machine?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "novel_translations_episode_id_fkey";
+            columns: ["episode_id"];
+            isOneToOne: false;
+            referencedRelation: "episodes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       plans: {
         Row: {
           active: boolean;
