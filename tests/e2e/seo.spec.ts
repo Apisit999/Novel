@@ -42,3 +42,15 @@ test("robots.txt และ sitemap.xml ถูกต้อง", async ({ request 
   expect(sitemap).not.toContain("/read/sample-novel/2");
   expect(sitemap).toContain("/read/sample-novel/1");
 });
+
+test("ทุกหน้าส่ง security headers พื้นฐาน และไม่เปิดเผยว่าใช้ Next.js", async ({ request }) => {
+  for (const path of ["/", "/login", "/browse/novel"]) {
+    const res = await request.get(path);
+    const h = res.headers();
+    expect(h["x-content-type-options"]).toBe("nosniff");
+    expect(h["x-frame-options"]).toBe("DENY");
+    expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(h["permissions-policy"]).toContain("camera=()");
+    expect(h["x-powered-by"]).toBeUndefined();
+  }
+});

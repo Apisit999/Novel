@@ -5,9 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+# ยกเลิกรอบเก่าที่ยังรันอยู่เมื่อมี push ใหม่ใน branch เดียวกัน
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,9 +24,47 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+
+      # ---- ตรวจโค้ด (ไม่ต้องใช้ฐานข้อมูล)
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+
+      # ---- ฐานข้อมูล: Supabase ในเครื่อง (Postgres + Auth + API บน Docker ของ runner)
+      # `supabase start` รัน supabase/migrations ทั้งหมด แล้วใส่ supabase/seed.sql ให้เอง
+      # เว็บอ่านฐานข้อมูลตอน build จึงต้องมีฐานข้อมูลก่อนเริ่ม build/e2e
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: เริ่ม Supabase ในเครื่อง
+        run: supabase start
+      - name: ส่งค่าเชื่อมต่อให้ขั้นตอนถัดไป
+        run: |
+          supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          set -a; . "$RUNNER_TEMP/supabase.env"; set +a
+          # ชื่อคีย์ต่างกันตามเวอร์ชัน CLI (ANON_KEY/SERVICE_ROLE_KEY หรือ PUBLISHABLE_KEY/SECRET_KEY)
+          ANON="${PUBLISHABLE_KEY:-$ANON_KEY}"
+          SERVICE="${SECRET_KEY:-$SERVICE_ROLE_KEY}"
+          echo "::add-mask::$ANON"
+          echo "::add-mask::$SERVICE"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE"
+            echo "SUPABASE_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+      - name: เทสต์ฐานข้อมูล (RLS, can_access, trigger โปรไฟล์)
+        run: npm run test:db
+
+      # ---- e2e: build เวอร์ชันจริงแล้วทดสอบ 5 โปรเจกต์ (มือถือ/แท็บเล็ต/คอม/Safari iPhone/Safari Mac)
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
+
+      - name: เก็บรายงานเมื่อเทสต์ล้ม
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7

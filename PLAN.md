@@ -176,7 +176,7 @@ if user มี subscription active     → อนุญาต
 **0.7 คุณภาพและการ deploy** — S
 
 - [x] Vitest + Playwright (เทสต์หน้าแรก เมนู ธีม และ 404)
-- [x] GitHub Actions (ไฟล์พร้อม รอเชื่อม GitHub): format → lint → typecheck → test
+- [~] GitHub Actions: format → lint → typecheck → unit → Supabase ในเครื่อง (`supabase start`) → test:db → e2e (เขียนใหม่หลังเว็บอ่านฐานข้อมูล; **ยังไม่เคยรันจริง** — เครื่องนี้ไม่มี Docker และยังไม่ได้เชื่อม GitHub รอบแรกอาจต้องแก้เล็กน้อย เช่นชื่อตัวแปรที่ `supabase status -o env` ให้ออกมา)
 - [ ] ต่อ Vercel: `main` = production, branch อื่น = preview
 - [x] README: วิธีรันเครื่องใหม่ตั้งแต่ศูนย์
 
@@ -361,3 +361,6 @@ if user มี subscription active     → อนุญาต
 - ℹ️ **หลังบ้านใช้งานอย่างไร:** ล็อกอินเข้าเว็บหนึ่งครั้งด้วยบัญชีที่จะเป็นแอดมิน → รัน `npm run make-admin -- อีเมลนั้น` → เข้า `/admin`
 - ℹ️ **ข้อจำกัดที่ทราบ (soft 404):** หน้า `/title/[slug]` และ `/read/...` ที่ไม่มีจริงตอบรหัส 200 (เปลือกหน้าถูกสตรีมก่อนตรวจ) แต่แสดงหน้า "ไม่พบ" และถูกตั้ง `noindex` อัตโนมัติ — Google จึงไม่เก็บเป็นหน้าจริง; ถ้าต้องการ 404 จริงต้องย้ายการตรวจไป `proxy.ts` หรือใช้ `generateStaticParams`
 - ℹ️ **บทเรียนฟอร์ม:** `<form action={fn}>` ของ React 19 ล้างช่องกรอกทั้งหมดหลังส่ง แม้ส่งไม่ผ่าน — ฟอร์มหลังบ้านจึงใช้ `submitKeepingValues` (`src/features/admin/submit.ts`) แทน
+
+- ⚠️ **ก่อนเปิดตัว (ความปลอดภัย):** ใส่ Content-Security-Policy แบบใช้ nonce (ตอนนี้มี security headers พื้นฐานแล้ว: nosniff, frame deny, referrer, permissions) · rate limit การยิง Server Action/ค้นหา (เฟส 8) · ตั้ง SMTP · แยกโปรเจกต์ Supabase dev/prod
+- ⚠️ **Deploy:** ขั้นตอนอยู่ใน README หัวข้อ "Deploy ขึ้น Vercel" — ต้องการบัญชี GitHub (push โค้ด) + Vercel + โดเมน
