@@ -69,6 +69,8 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
 
   return (
     <NovelReader
+      slug={slug}
+      number={n}
       titleName={title.name}
       titleHref={`/title/${slug}`}
       episodeName={meta.name}

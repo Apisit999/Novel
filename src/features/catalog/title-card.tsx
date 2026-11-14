@@ -10,17 +10,29 @@ export const STATUS_LABEL: Record<TitleStatus, string> = {
 };
 
 /** การ์ดเรื่อง ปกใหญ่ 2:3 — ใช้ร่วมทุกหน้า (หน้าแรก, หมวด, ค้นหา) */
-export function TitleCard({ title }: { title: TitleSummary }) {
+export function TitleCard({
+  title,
+  showPremium = false,
+}: {
+  title: TitleSummary;
+  /** แสดงป้าย premium เฉพาะเมื่อเปิด paywall (ช่วงเปิดฟรีทุกอย่างเปิดอ่านได้ ไม่ควรมีป้ายหลอก) */
+  showPremium?: boolean;
+}) {
   const label = getContentType(title.type)?.label ?? "";
   return (
     <Link href={`/title/${title.slug}`} className="flex flex-col gap-2 no-underline">
       <div
-        className="relative aspect-[2/3] rounded-xl p-3"
+        className="relative flex aspect-[2/3] flex-col items-start justify-between rounded-xl p-3"
         style={{ background: coverColor(title.slug) }}
       >
         <span className="bg-surface text-foreground rounded-full px-3 py-0.5 text-sm font-bold">
           {label}
         </span>
+        {showPremium && title.access === "premium" && (
+          <span className="bg-accent text-accent-foreground rounded-full px-3 py-0.5 text-sm font-bold">
+            Premium
+          </span>
+        )}
       </div>
       <span className="text-foreground text-lg leading-snug font-bold">{title.name}</span>
       <span className="text-muted text-sm">{STATUS_LABEL[title.status]}</span>

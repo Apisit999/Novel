@@ -2,13 +2,18 @@ import Link from "next/link";
 import { SITE } from "@/lib/site";
 import { CONTENT_TYPES } from "@/content-types/registry";
 import { SearchForm } from "@/components/search-form";
-import { getFeatured, listTitles } from "@/features/catalog/catalog";
+import { getFeatured, listAllTitles, listTitles } from "@/features/catalog/catalog";
+import { FavoriteButton } from "@/features/library/library-actions";
+import { ContinueStrip } from "@/features/library/library-view";
+import { getFlags } from "@/lib/flags";
 import { coverColor } from "@/features/catalog/cover";
 import { STATUS_LABEL, TitleCard, TitleGrid } from "@/features/catalog/title-card";
 
 export default async function HomePage() {
-  const [featured, sections] = await Promise.all([
+  const showPremium = getFlags().paywallEnabled;
+  const [featured, allTitles, sections] = await Promise.all([
     getFeatured(),
+    listAllTitles(),
     Promise.all(
       CONTENT_TYPES.map(async (t) => ({ def: t, titles: (await listTitles(t.id)).slice(0, 5) })),
     ),
@@ -18,6 +23,7 @@ export default async function HomePage() {
     <div className="flex flex-col gap-10">
       <h1 className="sr-only">{SITE.name}</h1>
       <SearchForm />
+      <ContinueStrip titles={allTitles} />
 
       {featured && (
         <section
@@ -43,12 +49,7 @@ export default async function HomePage() {
               >
                 เริ่มอ่าน
               </Link>
-              <Link
-                href="/library"
-                className="border-accent text-accent flex min-h-12 items-center rounded-full border-2 px-6 font-bold no-underline"
-              >
-                เพิ่มในเรื่องที่ชอบ
-              </Link>
+              <FavoriteButton slug={featured.slug} />
             </div>
           </div>
         </section>
@@ -69,7 +70,7 @@ export default async function HomePage() {
           ) : (
             <TitleGrid>
               {titles.map((t) => (
-                <TitleCard key={t.slug} title={t} />
+                <TitleCard key={t.slug} title={t} showPremium={showPremium} />
               ))}
             </TitleGrid>
           )}

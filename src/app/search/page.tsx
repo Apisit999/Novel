@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { getFlags } from "@/lib/flags";
 import { SearchForm } from "@/components/search-form";
 import { searchTitles } from "@/features/catalog/catalog";
 import { TitleCard, TitleGrid } from "@/features/catalog/title-card";
@@ -7,6 +8,7 @@ async function Results({ searchParams }: { searchParams: PageProps<"/search">["s
   const { q } = await searchParams;
   const query = typeof q === "string" ? q : "";
   const results = await searchTitles(query);
+  const showPremium = getFlags().paywallEnabled;
 
   return (
     <>
@@ -22,7 +24,7 @@ async function Results({ searchParams }: { searchParams: PageProps<"/search">["s
         <div className="mt-4">
           <TitleGrid>
             {results.map((t) => (
-              <TitleCard key={t.slug} title={t} />
+              <TitleCard key={t.slug} title={t} showPremium={showPremium} />
             ))}
           </TitleGrid>
         </div>

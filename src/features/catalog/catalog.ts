@@ -212,3 +212,8 @@ export async function listForSitemap(): Promise<
       .map(({ number, name, access }) => ({ number, name, access })),
   }));
 }
+
+/** ทุกเรื่อง (สรุป) — ส่งให้หน้าห้องสมุดฝั่งเบราว์เซอร์จับคู่กับรายการโปรด/ประวัติที่เก็บในเครื่อง */
+export async function listAllTitles(): Promise<TitleSummary[]> {
+  return CATALOG.map(toSummary);
+}

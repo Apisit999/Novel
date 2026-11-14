@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { saveProgress } from "@/features/library/local-library";
 
 export type ReaderLang = "th" | "en" | "zh";
 
@@ -12,6 +13,8 @@ export interface ReaderBody {
 }
 
 interface Props {
+  slug: string;
+  number: number;
   titleName: string;
   titleHref: string;
   episodeName: string;
@@ -44,6 +47,8 @@ const btn =
 
 /** ตัวอ่านนิยาย: ขนาด/ฟอนต์/ภาษา, แถบความคืบหน้า, ซ่อนเครื่องมือเมื่อเลื่อนลง, ลูกศรเปลี่ยนตอน */
 export function NovelReader({
+  slug,
+  number,
   titleName,
   titleHref,
   episodeName,
@@ -61,6 +66,26 @@ export function NovelReader({
     const saved = localStorage.getItem("lang") as ReaderLang | null;
     if (saved && bodies[saved]) setLang(saved); // eslint-disable-line react-hooks/set-state-in-effect
   }, [bodies]);
+
+  // กลับไปตำแหน่งที่อ่านค้างของตอนนี้ (ครั้งเดียวตอนเปิดหน้า)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("aandoo:library:v1");
+      const saved = raw ? JSON.parse(raw)?.progress?.[slug] : null;
+      if (saved?.number === number && saved.percent > 5 && saved.percent < 100) {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        window.scrollTo({ top: (max * saved.percent) / 100 });
+      }
+    } catch {
+      /* ไม่มีข้อมูล/อ่านไม่ได้ → เริ่มต้นตอนปกติ */
+    }
+  }, [slug, number]);
+
+  // บันทึกตำแหน่งอ่าน (หน่วง 600ms เพื่อไม่เขียนทุกพิกเซล)
+  useEffect(() => {
+    const t = setTimeout(() => saveProgress(slug, number, progress), 600);
+    return () => clearTimeout(t);
+  }, [slug, number, progress]);
 
   useEffect(() => {
     function onScroll() {
