@@ -154,11 +154,11 @@ if user มี subscription active     → อนุญาต
 
 **0.3 ฐานข้อมูล** — M
 
-- [ ] ติดตั้ง Supabase CLI, เชื่อมโปรเจกต์
-- [~] migration แรก: ตารางทั้งหมดในส่วนที่ 4 + index + trigger `updated_at` — เขียนแล้ว `supabase/migrations/20261113000000_init.sql` แต่ **ยังไม่เคยรันจริง**
-- [~] SQL function `can_access(episode_id)` + RLS policy ทุกตาราง — เขียนแล้ว **ยังไม่ทดสอบ** (ต้องมี Docker หรือโปรเจกต์ Supabase)
-- [~] `seed.sql`: นิยายตัวอย่าง 1 เรื่อง, มังงะตัวอย่าง, วิดีโอ placeholder — เขียนแล้ว **ยังไม่เคยรันจริง**
-- [~] สคริปต์ `npm run db:types` — เพิ่มแล้ว (ต้องมี Supabase CLI + `supabase start`)
+- [x] ติดตั้ง Supabase CLI, เชื่อมโปรเจกต์ (oriqdtarlztqiqpafbvx, ภูมิภาค Mumbai)
+- [x] migration แรก: ตารางทั้งหมด + index + trigger — รันบนฐานข้อมูลจริงสำเร็จ (13 ตาราง เปิด RLS ทุกตาราง)
+- [x] SQL function `can_access(episode_id)` + RLS policy ทุกตาราง — ทดสอบแล้วกับฐานข้อมูลจริง 20 เทสต์ (`npm run test:db`): ผู้เยี่ยมชม/ผู้ใช้/สมาชิก active/ยกเลิกแต่ยังไม่หมดรอบ/หมดรอบ/past_due/แอดมิน, paywall เปิด-ปิด, fail-closed, ข้อมูลผู้ใช้แยกกัน, แก้ role ตัวเองไม่ได้
+- [x] `seed.sql`: นิยายตัวอย่าง, มังงะตัวอย่าง, วิดีโอ placeholder — รันบนฐานข้อมูลจริงแล้ว
+- [x] สคริปต์ `db:types` (เครื่อง) / `db:types:remote` (โปรเจกต์ที่ link) — gen `src/types/database.ts` แล้ว
 
 **0.4 Content-type registry** — M
 
