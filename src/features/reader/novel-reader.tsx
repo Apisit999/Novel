@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { saveProgress } from "@/features/library/local-library";
+import { Markdown } from "./markdown";
 
 export type ReaderLang = "th" | "en" | "zh";
 
@@ -200,9 +201,7 @@ export function NovelReader({
           lineHeight: 2,
         }}
       >
-        {body.text.split(/\n{2,}/).map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
+        <Markdown source={body.text} />
       </div>
 
       <nav aria-label="เปลี่ยนตอน" className="mx-auto mt-10 flex max-w-[38rem] justify-between gap-3">

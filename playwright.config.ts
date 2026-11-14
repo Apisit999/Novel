@@ -19,6 +19,12 @@ export default defineConfig({
       name: "desktop",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
     },
+    // Safari (WebKit): iPhone และ Mac — ใช้เอนจินเดียวกับ Safari จริง จับบั๊กเฉพาะ iOS/Mac ได้
+    { name: "safari-iphone", use: { ...devices["iPhone 13"] } },
+    {
+      name: "safari-desktop",
+      use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } },
+    },
   ],
   // ทดสอบกับเวอร์ชัน build จริง (ใกล้เคียง production)
   webServer: {
