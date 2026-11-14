@@ -200,3 +200,15 @@ export async function getFeatured(): Promise<TitleSummary | undefined> {
   const entry = CATALOG.find((t) => t.type === "novel" && t.access === "premium") ?? CATALOG[0];
   return entry && toSummary(entry);
 }
+
+/** ทุกเรื่องพร้อมตอน (ไว้สร้าง sitemap) — เฉพาะที่ผู้เยี่ยมชมเปิดอ่านได้ฟรี */
+export async function listForSitemap(): Promise<
+  { title: TitleSummary; episodes: EpisodeSummary[] }[]
+> {
+  return CATALOG.map((entry) => ({
+    title: toSummary(entry),
+    episodes: entry.novelEpisodes
+      .filter((e) => (e.access === "inherit" ? entry.access : e.access) === "free")
+      .map(({ number, name, access }) => ({ number, name, access })),
+  }));
+}

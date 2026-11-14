@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE } from "@/lib/site";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CONTENT_TYPES, getContentType } from "@/content-types/registry";
@@ -11,6 +13,17 @@ export function generateStaticParams() {
 
 function parseStatus(v: string | string[] | undefined): TitleStatus | undefined {
   return typeof v === "string" && v in STATUS_LABEL ? (v as TitleStatus) : undefined;
+}
+
+export async function generateMetadata({ params }: PageProps<"/browse/[type]">): Promise<Metadata> {
+  const { type } = await params;
+  const def = getContentType(type);
+  if (!def) return {};
+  return {
+    title: def.label,
+    description: `รวม${def.label}ทั้งหมดบน ${SITE.name}`,
+    alternates: { canonical: `/browse/${def.id}` }, // ตัวกรอง (?tag=) ชี้กลับหน้าหลักของหมวด
+  };
 }
 
 async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {

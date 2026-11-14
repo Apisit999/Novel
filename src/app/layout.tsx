@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
+import { publicEnv } from "@/lib/env";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BottomNav, BottomNavLinks } from "@/components/bottom-nav";
@@ -10,8 +11,17 @@ import "./globals.css";
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(publicEnv.NEXT_PUBLIC_SITE_URL),
   title: { default: SITE.name, template: `%s | ${SITE.name}` },
   description: SITE.description,
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    locale: "th_TH",
+    title: SITE.name,
+    description: SITE.description,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 // ตั้งธีม/ฟอนต์/ขนาดตัวอักษรก่อนวาดหน้า เพื่อไม่ให้จอกะพริบ

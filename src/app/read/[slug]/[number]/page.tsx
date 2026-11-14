@@ -1,9 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { canAccess } from "@/features/access/can-access";
+import { canAccess, effectiveAccess } from "@/features/access/can-access";
 import { getNovelEpisode, getTitle, listEpisodes } from "@/features/catalog/catalog";
 import { NovelReader, type ReaderBody, type ReaderLang } from "@/features/reader/novel-reader";
 import { getFlags } from "@/lib/flags";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/read/[slug]/[number]">): Promise<Metadata> {
+  const { slug, number } = await params;
+  const title = await getTitle(slug);
+  const meta = (await listEpisodes(slug)).find((e) => e.number === Number(number));
+  if (!title || !meta) return {};
+  const free = effectiveAccess(title.access, meta.access) === "free";
+  const url = `/read/${slug}/${number}`;
+  return {
+    title: `${meta.name} — ${title.name}`,
+    description: title.synopsis,
+    alternates: { canonical: url },
+    // ตอน premium ไม่ให้ค้นหาเจอ (เนื้อหาไม่ได้เปิดสาธารณะ)
+    robots: free ? undefined : { index: false, follow: true },
+    openGraph: { type: "article", title: `${meta.name} — ${title.name}`, url },
+  };
+}
 
 export default async function ReadPage({ params }: PageProps<"/read/[slug]/[number]">) {
   const { slug, number } = await params;

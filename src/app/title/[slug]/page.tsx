@@ -1,7 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContentType } from "@/content-types/registry";
 import { getTitle, listEpisodes } from "@/features/catalog/catalog";
+
+export async function generateMetadata({ params }: PageProps<"/title/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const title = await getTitle(slug);
+  if (!title) return {};
+  const url = `/title/${slug}`;
+  return {
+    title: title.name,
+    description: title.synopsis,
+    alternates: { canonical: url },
+    openGraph: { type: "book", title: title.name, description: title.synopsis, url },
+  };
+}
 
 export default async function TitlePage({ params }: PageProps<"/title/[slug]">) {
   const { slug } = await params;

@@ -31,6 +31,8 @@ async function Results({ searchParams }: { searchParams: PageProps<"/search">["s
   );
 }
 
+export const metadata = { title: "ค้นหา", robots: { index: false } };
+
 export default function SearchPage(props: PageProps<"/search">) {
   return (
     <section>

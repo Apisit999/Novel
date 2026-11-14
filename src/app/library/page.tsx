@@ -1,3 +1,5 @@
+export const metadata = { title: "เรื่องที่ชอบ", robots: { index: false } };
+
 export default function LibraryPage() {
   return (
     <section>
