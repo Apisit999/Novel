@@ -12,6 +12,9 @@ function env(key: string): string | undefined {
 }
 
 const url = env("NEXT_PUBLIC_SUPABASE_URL");
+
+/** ที่อยู่ Supabase ที่เทสต์ใช้ (ไว้ยิงตรงเพื่อตรวจ Storage) */
+export const SUPABASE_URL = url ?? "";
 const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
 
 /** เทสต์ที่ต้องสร้างผู้ใช้จริงจะถูกข้ามถ้าไม่มี service role key */
@@ -60,3 +63,19 @@ export async function makeAdmin(id: string) {
 export async function deleteTitleBySlug(slug: string) {
   await admin().from("titles").delete().eq("slug", slug);
 }
+
+/**
+ * เคลียร์แคชข้อมูลของเว็บที่กำลังทดสอบ — จำเป็นหลังสร้างข้อมูลด้วย service role ตรง ๆ
+ * (รายการเรื่องแคชไว้ 1 นาที; หลังบ้านเคลียร์ให้เองแต่การเขียนตรงไม่ผ่านหลังบ้าน)
+ */
+export async function revalidateCatalog() {
+  const secret = env("REVALIDATE_SECRET");
+  if (!secret) throw new Error("ไม่มี REVALIDATE_SECRET ใน .env.local / environment");
+  const res = await fetch("http://localhost:3100/api/revalidate", {
+    method: "POST",
+    headers: { "x-revalidate-secret": secret },
+  });
+  if (!res.ok) throw new Error(`เคลียร์แคชไม่สำเร็จ: ${res.status}`);
+}
+
+export const REVALIDATE_SECRET = env("REVALIDATE_SECRET");

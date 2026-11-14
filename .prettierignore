@@ -3,3 +3,8 @@ node_modules
 _old_node_modules
 package-lock.json
 supabase/migrations
+
+# เครื่องมือ/สกิลของ AI ที่ติดตั้งเข้าเครื่อง (ไม่ใช่โค้ดของโปรเจกต์)
+.agents
+.claude
+skills-lock.json

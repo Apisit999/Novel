@@ -31,7 +31,7 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
       <p className="mt-2">{title.synopsis}</p>
       {title.tags.length > 0 && <p className="text-muted mt-2 text-sm">{title.tags.join(" · ")}</p>}
       <div className="mt-4 flex flex-wrap gap-3">
-        {title.type === "novel" && episodes.length > 0 && (
+        {(title.type === "novel" || title.type === "manga") && episodes.length > 0 && (
           <ReadButton slug={slug} firstNumber={episodes[0].number} />
         )}
         <FavoriteButton slug={slug} />

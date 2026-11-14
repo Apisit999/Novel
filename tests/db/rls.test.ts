@@ -319,6 +319,85 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
     });
   });
 
+  describe("บัคเก็ตรูปมังงะ (Storage) ใช้สิทธิ์เดียวกับ can_access", () => {
+    const prefix = `rls-${tag}`;
+    // ตอนที่ให้มีรูป: ฟรี / ฟรีแต่ตอน premium / เรื่อง premium / draft
+    const withImage = ["freeInherit", "freeButPremiumEp", "premInherit", "draft"] as const;
+
+    beforeAll(async () => {
+      await setPaywall(true);
+      for (const k of withImage) {
+        const key = `${prefix}/${k}.webp`;
+        await db.query(
+          `insert into manga_pages (episode_id, page_no, image_key) values ($1, 1, $2)`,
+          [ep[k], key],
+        );
+        await db.query(`insert into storage.objects (bucket_id, name) values ('manga', $1)`, [key]);
+      }
+      // ไฟล์ที่ไม่ผูกกับหน้าใดเลย (กำพร้า) ต้องไม่เห็น ยกเว้นแอดมิน
+      await db.query(`insert into storage.objects (bucket_id, name) values ('manga', $1)`, [
+        `${prefix}/orphan.webp`,
+      ]);
+    });
+
+    const objects = (who: Who) =>
+      as(who, async () => {
+        const r = await db.query(
+          `select name from storage.objects where bucket_id = 'manga' and name like $1`,
+          [`${prefix}/%`],
+        );
+        return r.rows
+          .map((x) => (x.name as string).slice(prefix.length + 1, -".webp".length))
+          .sort();
+      });
+
+    it("ผู้เยี่ยมชมเห็นรูปเฉพาะตอนฟรี (premium/draft/กำพร้า ไม่เห็น)", async () => {
+      expect(await objects("anon")).toEqual(["freeInherit"]);
+    });
+    it("สมาชิกเห็นรูปตอนที่เผยแพร่ทั้งหมด แต่ไม่เห็น draft", async () => {
+      expect(await objects("subActive")).toEqual(
+        ["freeButPremiumEp", "freeInherit", "premInherit"].sort(),
+      );
+    });
+    it("สมาชิกที่หมดอายุเห็นเฉพาะตอนฟรี", async () => {
+      expect(await objects("subCanceledExpired")).toEqual(["freeInherit"]);
+    });
+    it("แอดมินเห็นทุกไฟล์ รวม draft และไฟล์กำพร้า", async () => {
+      expect(await objects("admin")).toEqual(
+        ["draft", "freeButPremiumEp", "freeInherit", "orphan", "premInherit"].sort(),
+      );
+    });
+    it("paywall ปิด: ผู้เยี่ยมชมเห็นรูปตอนที่เผยแพร่ทั้งหมด (draft/กำพร้า ยังไม่เห็น)", async () => {
+      await setPaywall(false);
+      expect(await objects("anon")).toEqual(
+        ["freeButPremiumEp", "freeInherit", "premInherit"].sort(),
+      );
+      await setPaywall(true);
+    });
+    it("ผู้ใช้ทั่วไปอัปโหลดไฟล์ไม่ได้ (เฉพาะแอดมิน)", async () => {
+      await db.query("savepoint s");
+      await expect(
+        as("user", () =>
+          db.query(`insert into storage.objects (bucket_id, name) values ('manga', $1)`, [
+            `${prefix}/hack.webp`,
+          ]),
+        ),
+      ).rejects.toThrow(/row-level security|permission denied/);
+      await db.query("rollback to savepoint s");
+
+      // (การลบทำผ่าน Storage API เท่านั้น — Supabase ห้ามลบตารางจัดเก็บด้วย SQL ตรง ๆ จึงทดสอบใน e2e หลังบ้าน)
+      expect(await objects("admin")).toHaveLength(5);
+    });
+    it("ผู้ดูแลอัปโหลดได้", async () => {
+      await as("admin", () =>
+        db.query(`insert into storage.objects (bucket_id, name) values ('manga', $1)`, [
+          `${prefix}/ok.webp`,
+        ]),
+      );
+      expect(await objects("admin")).toContain("ok");
+    });
+  });
+
   describe("โปรไฟล์ตอนสมัคร (trigger)", () => {
     const profileOf = async (id: string) =>
       (await db.query(`select display_name, avatar_url from profiles where id = $1`, [id])).rows[0];

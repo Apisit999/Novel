@@ -3,6 +3,7 @@
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { removeObjects } from "@/server/storage";
 import { requireAdmin } from "./guard";
 import { countWords, episodeSchema, thaiLocalToIso, titleSchema } from "./schemas";
 
@@ -99,8 +100,19 @@ export async function deleteTitle(formData: FormData) {
   const { db } = await requireAdmin();
   const id = uuid.safeParse(formData.get("id"));
   if (!id.success) redirect("/admin");
+  // ไฟล์รูปมังงะใน Storage ไม่ถูก cascade ตามแถว → เก็บรายชื่อไฟล์ก่อนลบ แล้วลบไฟล์ทิ้งด้วย (กันขยะค้าง)
+  const episodes = await db.from("episodes").select("id").eq("title_id", id.data);
+  const epIds = (episodes.data ?? []).map((e) => e.id);
+  const pages = epIds.length
+    ? await db.from("manga_pages").select("image_key").in("episode_id", epIds)
+    : { data: [] };
   // ลบแล้ว FK cascade ลบตอน เนื้อหา คำแปล ความคืบหน้า และรายการโปรดที่อ้างเรื่องนี้ทั้งหมด
-  await db.from("titles").delete().eq("id", id.data);
+  const { error } = await db.from("titles").delete().eq("id", id.data);
+  if (error) redirect(`/admin/titles/${id.data}?error=delete`);
+  await removeObjects(
+    db,
+    (pages.data ?? []).map((p) => p.image_key),
+  );
   refreshCatalog();
   redirect("/admin?deleted=1");
 }
@@ -183,7 +195,14 @@ export async function deleteEpisode(formData: FormData) {
   const titleId = uuid.safeParse(formData.get("titleId"));
   const id = uuid.safeParse(formData.get("id"));
   if (!id.success || !titleId.success) redirect("/admin");
-  await db.from("episodes").delete().eq("id", id.data);
+  const pages = await db.from("manga_pages").select("image_key").eq("episode_id", id.data);
+  const { error } = await db.from("episodes").delete().eq("id", id.data);
+  if (!error) {
+    await removeObjects(
+      db,
+      (pages.data ?? []).map((p) => p.image_key),
+    ); // ไฟล์รูปไม่ถูก cascade ตามแถว ต้องลบเอง
+  }
   refreshCatalog();
   redirect(`/admin/titles/${titleId.data}?deleted=1`);
 }

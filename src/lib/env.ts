@@ -26,6 +26,8 @@ const serverSchema = z.object({
   SIGNUP_ENABLED: flag(true),
   // ล็อกอินด้วยอีเมล (magic link): ปิดไว้ก่อน ใช้ Google เป็นทางหลัก — เปิดคืนด้วย EMAIL_LOGIN_ENABLED=true
   EMAIL_LOGIN_ENABLED: flag(false),
+  // ความลับของ POST /api/revalidate (เคลียร์แคชหลังแก้ฐานข้อมูลโดยตรง) — ไม่ตั้ง = endpoint ปิด (404)
+  REVALIDATE_SECRET: z.string().min(16).optional(),
 });
 
 export function parsePublicEnv(source: Record<string, string | undefined>) {

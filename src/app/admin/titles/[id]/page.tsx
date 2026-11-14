@@ -67,17 +67,14 @@ export default async function EditTitlePage({
       <div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-bold">ตอน ({episodes?.length ?? 0})</h2>
-          {title.type === "novel" && (
+          {title.type !== "video" && (
             <Link href={`/admin/titles/${id}/episodes/new`} className={ghostBtn}>
               + เพิ่มตอน
             </Link>
           )}
         </div>
-        {title.type !== "novel" ? (
-          <p className="text-muted">
-            การลงตอนของ{title.type === "manga" ? "มังงะ" : "วิดีโอ"}จะมาในเฟส{" "}
-            {title.type === "manga" ? 4 : 5}
-          </p>
+        {title.type === "video" ? (
+          <p className="text-muted">การลงตอนของวิดีโอจะมาในเฟส 5</p>
         ) : !episodes?.length ? (
           <p className="text-muted">ยังไม่มีตอน — กด “+ เพิ่มตอน” เพื่อลงตอนแรก</p>
         ) : (

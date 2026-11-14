@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { Access, EpisodeAccess } from "@/features/access/can-access";
 import { publicDb } from "@/server/db";
+import { signedReadUrls } from "@/server/storage";
 
 export type TitleType = "novel" | "manga" | "video";
 export type TitleStatus = "ongoing" | "completed" | "hiatus";
@@ -203,4 +204,55 @@ export async function listForSitemap(): Promise<
       ),
     })),
   );
+}
+
+export interface MangaPage {
+  pageNo: number;
+  /** ลิงก์รูปที่หมดอายุ (ไม่ใช่ URL ถาวร) */
+  url: string;
+  width: number | null;
+  height: number | null;
+}
+
+export interface MangaEpisode extends EpisodeSummary {
+  pages: MangaPage[];
+}
+
+/**
+ * ตอนมังงะพร้อมรูปทุกหน้า — ไม่แคช เพราะผลขึ้นกับสิทธิ์ผู้อ่านและลิงก์รูปหมดอายุ
+ * ฐานข้อมูลคืนหน้าและออกลิงก์ให้เฉพาะเมื่อผู้อ่านมีสิทธิ์ตาม can_access (RLS ทั้งตารางและ Storage)
+ * ไม่มีสิทธิ์ → pages ว่าง (ผู้เรียกควรขึ้น paywall ก่อนเรียกอยู่แล้ว)
+ * หมายเหตุ: ใช้ไคลเอนต์ผู้เยี่ยมชม (anon) เหมือนนิยาย — เมื่อเปิดสิทธิ์สมาชิกจริง (เฟส 7) ต้องเปลี่ยนเป็นของผู้ใช้
+ */
+export async function getMangaEpisode(
+  slug: string,
+  number: number,
+): Promise<MangaEpisode | undefined> {
+  const db = publicDb();
+  const epRes = await db
+    .from("episodes")
+    .select("id, number, name, access, titles!inner(slug)")
+    .eq("titles.slug", slug)
+    .eq("number", number)
+    .maybeSingle();
+  if (epRes.error) throw new Error(`อ่านตอนจากฐานข้อมูลไม่สำเร็จ: ${epRes.error.message}`);
+  const ep = epRes.data;
+  if (!ep) return undefined;
+
+  const pagesRes = await db
+    .from("manga_pages")
+    .select("page_no, image_key, width, height")
+    .eq("episode_id", ep.id)
+    .order("page_no", { ascending: true });
+  if (pagesRes.error) throw new Error(`อ่านหน้ามังงะไม่สำเร็จ: ${pagesRes.error.message}`);
+
+  const urls = await signedReadUrls(
+    db,
+    pagesRes.data.map((p) => p.image_key),
+  );
+  const pages: MangaPage[] = pagesRes.data.flatMap((p) => {
+    const url = urls.get(p.image_key);
+    return url ? [{ pageNo: p.page_no, url, width: p.width, height: p.height }] : [];
+  });
+  return { number: ep.number, name: ep.name, access: ep.access, pages };
 }

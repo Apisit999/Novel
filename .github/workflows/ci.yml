@@ -53,6 +53,7 @@ jobs:
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE"
             echo "SUPABASE_DB_URL=$DB_URL"
+            echo "REVALIDATE_SECRET=$(openssl rand -hex 24)" # เทสต์ใช้เคลียร์แคชหลังสร้างข้อมูลตรง ๆ
           } >> "$GITHUB_ENV"
       - name: เทสต์ฐานข้อมูล (RLS, can_access, trigger โปรไฟล์)
         run: npm run test:db

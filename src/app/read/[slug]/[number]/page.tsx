@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canAccess, effectiveAccess } from "@/features/access/can-access";
-import { getNovelEpisode, getTitle, listEpisodes } from "@/features/catalog/catalog";
+import {
+  getMangaEpisode,
+  getNovelEpisode,
+  getTitle,
+  listEpisodes,
+} from "@/features/catalog/catalog";
+import { MangaReader } from "@/features/reader/manga-reader";
 import { NovelReader, type ReaderBody, type ReaderLang } from "@/features/reader/novel-reader";
 import { isPaywallEnabled } from "@/features/access/paywall";
 
@@ -29,7 +35,10 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
   const { slug, number } = await params;
   const n = Number(number);
   const title = await getTitle(slug);
-  if (!title || title.type !== "novel" || !Number.isInteger(n)) notFound();
+  // ตอนนี้ตัวอ่านรองรับนิยายและมังงะ (วิดีโอมาในเฟส 5)
+  if (!title || (title.type !== "novel" && title.type !== "manga") || !Number.isInteger(n)) {
+    notFound();
+  }
 
   const episodes = await listEpisodes(slug);
   const meta = episodes.find((e) => e.number === n);
@@ -55,6 +64,26 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
     );
   }
 
+  const prev = episodes.find((e) => e.number === n - 1);
+  const next = episodes.find((e) => e.number === n + 1);
+
+  if (title.type === "manga") {
+    const manga = await getMangaEpisode(slug, n);
+    if (!manga) notFound();
+    return (
+      <MangaReader
+        slug={slug}
+        number={n}
+        titleName={title.name}
+        titleHref={`/title/${slug}`}
+        episodeName={meta.name}
+        pages={manga.pages}
+        prevHref={prev && `/read/${slug}/${prev.number}`}
+        nextHref={next && `/read/${slug}/${next.number}`}
+      />
+    );
+  }
+
   const ep = await getNovelEpisode(slug, n);
   if (!ep) notFound();
   const bodies: Partial<Record<ReaderLang, ReaderBody>> = {
@@ -63,9 +92,6 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
   for (const [lang, t] of Object.entries(ep.translations)) {
     bodies[lang as ReaderLang] = { text: t.bodyMarkdown, machine: t.machine };
   }
-
-  const prev = episodes.find((e) => e.number === n - 1);
-  const next = episodes.find((e) => e.number === n + 1);
 
   return (
     <NovelReader

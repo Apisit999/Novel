@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EpisodeForm } from "@/features/admin/episode-form";
 import { requireAdmin } from "@/features/admin/guard";
+import { MangaEpisodeForm } from "@/features/admin/manga-episode-form";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -16,7 +17,8 @@ export default async function NewEpisodePage({
     .select("id, name, type")
     .eq("id", id)
     .maybeSingle();
-  if (!title || title.type !== "novel") notFound();
+  // ลงตอนได้เฉพาะนิยายและมังงะ (วิดีโอมาในเฟส 5)
+  if (!title || (title.type !== "novel" && title.type !== "manga")) notFound();
   const { data: last } = await db
     .from("episodes")
     .select("number")
@@ -31,21 +33,34 @@ export default async function NewEpisodePage({
         <Link href={`/admin/titles/${id}`}>← {title.name}</Link>
       </p>
       <h1 className="mt-1 mb-6 text-2xl font-bold">เพิ่มตอนใหม่</h1>
-      <EpisodeForm
-        values={{
-          titleId: id,
-          number: next,
-          name: `ตอนที่ ${next}`,
-          access: "inherit",
-          status: "draft",
-          publishAt: "",
-          body: "",
-          en: "",
-          enMachine: false,
-          zh: "",
-          zhMachine: true,
-        }}
-      />
+      {title.type === "manga" ? (
+        <MangaEpisodeForm
+          values={{
+            titleId: id,
+            number: next,
+            name: `ตอนที่ ${next}`,
+            access: "inherit",
+            status: "draft",
+            publishAt: "",
+          }}
+        />
+      ) : (
+        <EpisodeForm
+          values={{
+            titleId: id,
+            number: next,
+            name: `ตอนที่ ${next}`,
+            access: "inherit",
+            status: "draft",
+            publishAt: "",
+            body: "",
+            en: "",
+            enMachine: false,
+            zh: "",
+            zhMachine: true,
+          }}
+        />
+      )}
     </section>
   );
 }
