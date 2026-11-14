@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canAccess } from "@/features/access/can-access";
 import { getNovelEpisode, getTitle, listEpisodes } from "@/features/catalog/catalog";
+import { NovelReader, type ReaderBody, type ReaderLang } from "@/features/reader/novel-reader";
 import { getFlags } from "@/lib/flags";
 
 export default async function ReadPage({ params }: PageProps<"/read/[slug]/[number]">) {
@@ -21,29 +22,39 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
     paywallEnabled: getFlags().paywallEnabled,
   });
 
+  if (!decision.allowed) {
+    // paywall: ไม่ส่งเนื้อหาไปเบราว์เซอร์
+    return (
+      <article>
+        <p className="text-muted text-sm">
+          <Link href={`/title/${slug}`}>{title.name}</Link>
+        </p>
+        <h1 className="text-2xl font-bold">{meta.name}</h1>
+        <p className="mt-4">ตอนนี้สำหรับสมาชิกเท่านั้น</p>
+      </article>
+    );
+  }
+
+  const ep = await getNovelEpisode(slug, n);
+  if (!ep) notFound();
+  const bodies: Partial<Record<ReaderLang, ReaderBody>> = {
+    th: { text: ep.bodyMarkdown, machine: false },
+  };
+  for (const [lang, t] of Object.entries(ep.translations)) {
+    bodies[lang as ReaderLang] = { text: t.bodyMarkdown, machine: t.machine };
+  }
+
   const prev = episodes.find((e) => e.number === n - 1);
   const next = episodes.find((e) => e.number === n + 1);
 
-  let body: React.ReactNode;
-  if (decision.allowed) {
-    const ep = await getNovelEpisode(slug, n);
-    body = <p className="mt-4 leading-8 whitespace-pre-wrap">{ep?.bodyMarkdown}</p>;
-  } else {
-    // paywall: ไม่ส่งเนื้อหาไปเบราว์เซอร์
-    body = <p className="mt-4">ตอนนี้สำหรับสมาชิกเท่านั้น</p>;
-  }
-
   return (
-    <article>
-      <p className="text-muted text-sm">
-        <Link href={`/title/${slug}`}>{title.name}</Link>
-      </p>
-      <h1 className="text-2xl font-bold">{meta.name}</h1>
-      {body}
-      <nav className="mt-8 flex justify-between">
-        {prev ? <Link href={`/read/${slug}/${prev.number}`}>← ก่อนหน้า</Link> : <span />}
-        {next ? <Link href={`/read/${slug}/${next.number}`}>ถัดไป →</Link> : <span />}
-      </nav>
-    </article>
+    <NovelReader
+      titleName={title.name}
+      titleHref={`/title/${slug}`}
+      episodeName={meta.name}
+      bodies={bodies}
+      prevHref={prev && `/read/${slug}/${prev.number}`}
+      nextHref={next && `/read/${slug}/${next.number}`}
+    />
   );
 }

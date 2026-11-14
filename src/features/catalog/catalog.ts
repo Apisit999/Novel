@@ -19,8 +19,18 @@ export interface EpisodeSummary {
   access: EpisodeAccess;
 }
 
+export type TranslationLang = "en" | "zh";
+
+export interface NovelTranslation {
+  bodyMarkdown: string;
+  /** true = แปลอัตโนมัติด้วย AI ยังไม่ผ่านการตรวจ → แสดงป้ายกำกับ */
+  machine: boolean;
+}
+
 export interface NovelEpisode extends EpisodeSummary {
   bodyMarkdown: string;
+  /** ภาษาที่มีคำแปล (ภาษาไทยคือต้นฉบับ) */
+  translations: Partial<Record<TranslationLang, NovelTranslation>>;
 }
 
 export interface TitleFilter {
@@ -45,7 +55,35 @@ function makeEpisodes(count: number, premiumFrom?: number): NovelEpisode[] {
       number,
       name: `ตอนที่ ${number}${premium ? " (premium)" : ""}`,
       access: premium ? "premium" : "inherit",
-      bodyMarkdown: `นี่คือเนื้อหาตัวอย่างของตอนที่ ${number}`,
+      bodyMarkdown: [
+        `นี่คือเนื้อหาตัวอย่างของตอนที่ ${number}`,
+        "ย่อหน้าตัวอย่างสำหรับทดสอบการเลื่อนอ่านและแถบความคืบหน้า ข้อความนี้ยาวพอให้เห็นการตัดบรรทัดบนหน้าจอหลายขนาด ตั้งแต่มือถือจนถึงจอคอมพิวเตอร์",
+        "ย่อหน้าที่สามของตอน ใช้ทดสอบการปรับขนาดตัวอักษร ฟอนต์ และธีมสีของตัวอ่าน",
+        "ย่อหน้าที่สี่ ผู้อ่านสามารถปัดหรือกดลูกศรเพื่อไปตอนถัดไปได้",
+        "ย่อหน้าสุดท้ายของตอน",
+      ].join("\n\n"),
+      translations: {
+        en: {
+          bodyMarkdown: [
+            `This is the sample content of episode ${number}.`,
+            "A sample paragraph for testing scrolling and the progress bar. This text is long enough to show line wrapping on many screen sizes, from phones to desktop monitors.",
+            "The third paragraph, used to test font size, typeface and color themes in the reader.",
+            "The fourth paragraph. Readers can swipe or press the arrow keys to reach the next episode.",
+            "The last paragraph of the episode.",
+          ].join("\n\n"),
+          machine: false,
+        },
+        zh: {
+          bodyMarkdown: [
+            `这是第 ${number} 集的示例内容。`,
+            "用于测试滚动和进度条的示例段落。这段文字足够长，可以在从手机到电脑显示器的多种屏幕尺寸上显示换行效果。",
+            "第三段，用于测试阅读器中的字体大小、字体和颜色主题。",
+            "第四段。读者可以滑动或按方向键前往下一集。",
+            "本集的最后一段。",
+          ].join("\n\n"),
+          machine: true,
+        },
+      },
     };
   });
 }
