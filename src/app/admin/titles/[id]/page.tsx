@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteTitle } from "@/features/admin/actions";
+import { deleteTitle, moveEpisode } from "@/features/admin/actions";
 import { requireAdmin } from "@/features/admin/guard";
 import { isoToThaiLocal } from "@/features/admin/schemas";
 import { CoverUploader } from "@/features/admin/cover-uploader";
@@ -85,7 +85,7 @@ export default async function EditTitlePage({
           <p className="text-muted">ยังไม่มีตอน — กด “+ เพิ่มตอน” เพื่อลงตอนแรก</p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {episodes.map((e) => (
+            {episodes.map((e, idx) => (
               <li
                 key={e.id}
                 className="border-border bg-surface flex flex-wrap items-center gap-3 rounded-2xl border p-4"
@@ -96,6 +96,26 @@ export default async function EditTitlePage({
                 >
                   {e.number}. {e.name}
                 </Link>
+                <div className="flex gap-2">
+                  {(["up", "down"] as const).map((dir) => {
+                    const disabled = dir === "up" ? idx === 0 : idx === episodes.length - 1;
+                    return (
+                      <form key={dir} action={moveEpisode}>
+                        <input type="hidden" name="titleId" value={id} />
+                        <input type="hidden" name="id" value={e.id} />
+                        <input type="hidden" name="dir" value={dir} />
+                        <button
+                          type="submit"
+                          disabled={disabled}
+                          aria-label={`เลื่อนตอน ${e.number} ${dir === "up" ? "ขึ้น" : "ลง"}`}
+                          className="border-border bg-surface min-h-10 min-w-10 cursor-pointer rounded-full border font-bold disabled:cursor-default disabled:opacity-30"
+                        >
+                          {dir === "up" ? "↑" : "↓"}
+                        </button>
+                      </form>
+                    );
+                  })}
+                </div>
                 <Badge kind={e.status} />
                 {e.status === "scheduled" && (
                   <span className="text-muted text-sm">

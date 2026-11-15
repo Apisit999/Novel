@@ -236,4 +236,42 @@ test.describe("หลังบ้านกับ Supabase จริง (ต้�
     await page.goto(`/title/${slug}`);
     await expect(page.getByAltText("ปก เรื่องทดสอบปก")).toHaveCount(0);
   });
+
+  test("เรียงลำดับตอน: ปุ่มขึ้น/ลงสลับเลขตอนกับตอนข้างเคียง", async ({ page }) => {
+    await makeAdmin(user.id);
+    const db = admin();
+    const title = await db
+      .from("titles")
+      .insert({ slug, name: "เรื่องทดสอบเรียงตอน", type: "novel", published: true })
+      .select("id")
+      .single();
+    expect(title.error).toBeNull();
+    const id = title.data!.id;
+    const ins = await db.from("episodes").insert(
+      ["ก", "ข", "ค"].map((name, i) => ({
+        title_id: id,
+        number: i + 1,
+        name,
+        status: "published" as const,
+      })),
+    );
+    expect(ins.error).toBeNull();
+
+    await page.goto(callbackUrl(user, `/admin/titles/${id}`));
+    const rows = page.locator('a[href*="/episodes/"]:not([href$="/new"])');
+    await expect(rows).toHaveText(["1. ก", "2. ข", "3. ค"]);
+    await expect(page.getByRole("button", { name: "เลื่อนตอน 1 ขึ้น" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "เลื่อนตอน 3 ลง" })).toBeDisabled();
+
+    // เลื่อน "ค" (เลข 3) ขึ้น → ค เป็นเลข 2, ข เป็นเลข 3
+    await page.getByRole("button", { name: "เลื่อนตอน 3 ขึ้น" }).click();
+    await expect(rows).toHaveText(["1. ก", "2. ค", "3. ข"]);
+
+    const check = await db
+      .from("episodes")
+      .select("number, name")
+      .eq("title_id", id)
+      .order("number");
+    expect(check.data?.map((e) => `${e.number}${e.name}`)).toEqual(["1ก", "2ค", "3ข"]);
+  });
 });

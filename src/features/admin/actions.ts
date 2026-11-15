@@ -207,3 +207,44 @@ export async function deleteEpisode(formData: FormData) {
   refreshCatalog();
   redirect(`/admin/titles/${titleId.data}?deleted=1`);
 }
+
+/**
+ * สลับลำดับตอนกับตอนที่อยู่ติดกัน (ขึ้น/ลง) — ลำดับของตอนคือ "เลขตอน" จึงสลับเลขกัน
+ * (เลขตอนไม่ซ้ำในเรื่อง จึงพักเลขหนึ่งไว้ที่ค่าชั่วคราวก่อน เหมือนการสลับหน้ามังงะ)
+ * ผลข้างเคียง: ลิงก์ /read/<เรื่อง>/<เลข> ของสองตอนนี้สลับกันตามลำดับใหม่
+ */
+export async function moveEpisode(formData: FormData) {
+  const { db } = await requireAdmin();
+  const titleId = uuid.safeParse(formData.get("titleId"));
+  const id = uuid.safeParse(formData.get("id"));
+  const dir = formData.get("dir");
+  if (!titleId.success || !id.success || (dir !== "up" && dir !== "down")) redirect("/admin");
+
+  const { data } = await db
+    .from("episodes")
+    .select("id, number")
+    .eq("title_id", titleId.data)
+    .order("number", { ascending: true });
+  const list = data ?? [];
+  const i = list.findIndex((e) => e.id === id.data);
+  const j = dir === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= list.length) redirect(`/admin/titles/${titleId.data}`);
+
+  const a = list[i];
+  const b = list[j];
+  const TEMP = 1_000_000;
+  const step1 = await db.from("episodes").update({ number: TEMP }).eq("id", a.id);
+  const step2 = step1.error
+    ? step1
+    : await db.from("episodes").update({ number: a.number }).eq("id", b.id);
+  const step3 = step2.error
+    ? step2
+    : await db.from("episodes").update({ number: b.number }).eq("id", a.id);
+  if (step3.error) {
+    console.error("admin: สลับลำดับตอน:", step3.error.message);
+    // พยายามคืนเลขเดิมของตอนที่ถูกพักไว้ ไม่ให้ค้างที่เลขชั่วคราว
+    await db.from("episodes").update({ number: a.number }).eq("id", a.id).eq("number", TEMP);
+  }
+  refreshCatalog();
+  redirect(`/admin/titles/${titleId.data}`);
+}
