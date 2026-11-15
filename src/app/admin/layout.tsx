@@ -20,6 +20,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         <Link href="/admin" className="text-accent font-bold no-underline">
           เรื่องทั้งหมด
         </Link>
+        <Link href="/admin/home" className="text-accent font-bold no-underline">
+          จัดหน้าแรก
+        </Link>
         <Link href="/admin/titles/new" className="text-accent font-bold no-underline">
           + เรื่องใหม่
         </Link>

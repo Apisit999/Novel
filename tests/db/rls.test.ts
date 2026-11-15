@@ -449,4 +449,173 @@ describe.skipIf(!enabled)("RLS และ can_access (ฐานข้อมูล
       expect(r.rows[0].value).toBe(true);
     });
   });
+
+  describe("หน้าแรกอัตโนมัติ (home_sections / home_pins / collections / ยอดรายวัน)", () => {
+    const mk = async (slug: string, published: boolean) =>
+      (
+        await db.query(
+          `insert into titles (type, slug, name, access, published)
+           values ('novel', $1, $1, 'free', $2) returning id`,
+          [`home-${slug}-${tag}`, published],
+        )
+      ).rows[0].id as string;
+
+    const titlesOf = async (who: Who, table: string, col = "title") =>
+      as(who, async () => {
+        const r = await db.query(`select ${col} from ${table} where ${col} like $1`, [`%${tag}`]);
+        return r.rows.map((x) => x[col] as string).sort();
+      });
+
+    it("ผู้เยี่ยมชมเห็นเฉพาะส่วนที่เปิดอยู่และอยู่ในช่วงเวลา; แอดมินเห็นทั้งหมด", async () => {
+      const add = (name: string, enabled: boolean, start: string, end: string) =>
+        db.query(
+          `insert into home_sections (kind, title, enabled, starts_at, ends_at, config)
+           values ('latest', $1, $2, ${start}, ${end}, '{}'::jsonb)`,
+          [`${name}-${tag}`, enabled],
+        );
+      await add("on", true, "null", "null");
+      await add("off", false, "null", "null");
+      await add("future", true, "now() + interval '1 day'", "null");
+      await add("expired", true, "null", "now() - interval '1 day'");
+      await add("window", true, "now() - interval '1 day'", "now() + interval '1 day'");
+
+      expect(await titlesOf("anon", "home_sections")).toEqual([`on-${tag}`, `window-${tag}`]);
+      expect(await titlesOf("user", "home_sections")).toEqual([`on-${tag}`, `window-${tag}`]);
+      expect((await titlesOf("admin", "home_sections")).length).toBe(5);
+    });
+
+    it("ผู้ใช้ทั่วไป/ผู้เยี่ยมชม เขียนส่วนของหน้าแรกไม่ได้", async () => {
+      for (const who of ["anon", "user"] as const) {
+        await expect(
+          as(who, () =>
+            db.query(`insert into home_sections (kind, title) values ('latest', 'hack-${tag}')`),
+          ),
+        ).rejects.toThrow();
+      }
+      // แก้/ลบ: ไม่ error แต่ไม่มีแถวใดถูกกระทบ (RLS กรองออก)
+      const upd = await as("user", () =>
+        db.query(`update home_sections set enabled = false where title = $1`, [`on-${tag}`]),
+      );
+      expect(upd.rowCount).toBe(0);
+      const del = await as("user", () =>
+        db.query(`delete from home_sections where title = $1`, [`on-${tag}`]),
+      );
+      expect(del.rowCount).toBe(0);
+      expect(await titlesOf("admin", "home_sections")).toContain(`on-${tag}`);
+    });
+
+    it("kind ที่ไม่รู้จักถูกฐานข้อมูลปฏิเสธ", async () => {
+      await expect(
+        as("admin", () => db.query(`insert into home_sections (kind) values ('evil')`)),
+      ).rejects.toThrow();
+    });
+
+    it("การปัก: ผู้เยี่ยมชมเห็นเฉพาะที่อยู่ในช่วงเวลาและของเรื่องที่เผยแพร่แล้ว", async () => {
+      const pub = await mk("pin-pub", true);
+      const hid = await mk("pin-hid", false);
+      const pin = (t: string, note: string, start: string, end: string) =>
+        db.query(
+          `insert into home_pins (title_id, placement, note, starts_at, ends_at)
+           values ($1, 'spotlight', $2, ${start}, ${end})`,
+          [t, `${note}-${tag}`],
+        );
+      await pin(pub, "active", "null", "null");
+      await pin(pub, "future", "now() + interval '1 day'", "null");
+      await pin(pub, "expired", "null", "now() - interval '1 day'");
+      await pin(hid, "unpublished", "null", "null");
+
+      expect(await titlesOf("anon", "home_pins", "note")).toEqual([`active-${tag}`]);
+      expect((await titlesOf("admin", "home_pins", "note")).length).toBe(4);
+      await expect(
+        as("user", () =>
+          db.query(`insert into home_pins (title_id, placement) values ($1, 'hidden')`, [pub]),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("ชุดคัดสรร: ชุดที่ซ่อนมองไม่เห็น และรายการแสดงเฉพาะเรื่องที่เผยแพร่", async () => {
+      const pub = await mk("col-pub", true);
+      const hid = await mk("col-hid", false);
+      const col = async (slug: string, published: boolean) =>
+        (
+          await db.query(
+            `insert into collections (slug, title, published) values ($1, $1, $2) returning id`,
+            [`col-${slug}-${tag}`, published],
+          )
+        ).rows[0].id as string;
+      const shown = await col("shown", true);
+      const secret = await col("secret", false);
+      for (const [c, t] of [
+        [shown, pub],
+        [shown, hid],
+        [secret, pub],
+      ]) {
+        await db.query(`insert into collection_items (collection_id, title_id) values ($1, $2)`, [
+          c,
+          t,
+        ]);
+      }
+
+      expect(await titlesOf("anon", "collections")).toEqual([`col-shown-${tag}`]);
+      expect((await titlesOf("admin", "collections")).length).toBe(2);
+
+      const items = (who: Who) =>
+        as(who, async () => {
+          const r = await db.query(
+            `select collection_id, title_id from collection_items where collection_id = any($1::uuid[])`,
+            [[shown, secret]],
+          );
+          return r.rows
+            .map(
+              (x) =>
+                `${x.collection_id === shown ? "shown" : "secret"}:${x.title_id === pub ? "pub" : "hid"}`,
+            )
+            .sort();
+        });
+      expect(await items("anon")).toEqual(["shown:pub"]); // ชุดซ่อน/เรื่องไม่เผยแพร่ ไม่โผล่
+      expect((await items("admin")).length).toBe(3);
+      await expect(
+        as("user", () =>
+          db.query(`insert into collections (slug, title) values ('x-${tag}', 'x')`),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("ยอดรายวัน: อ่านได้เฉพาะเรื่องที่เผยแพร่; นับยอดเรียกได้เฉพาะ service role", async () => {
+      const pub = await mk("views-pub", true);
+      const hid = await mk("views-hid", false);
+      // record_title_view ไม่นับเรื่องที่ไม่เผยแพร่ และนับทั้งยอดสะสมและรายวัน
+      await db.query(`select record_title_view($1)`, [`home-views-pub-${tag}`]);
+      await db.query(`select record_title_view($1)`, [`home-views-pub-${tag}`]);
+      await db.query(`select record_title_view($1)`, [`home-views-hid-${tag}`]);
+      const total = await db.query(`select view_count from title_views where title_id = $1`, [pub]);
+      expect(total.rows[0].view_count).toBe("2");
+      const daily = await db.query(`select view_count from title_views_daily where title_id = $1`, [
+        pub,
+      ]);
+      expect(daily.rows).toEqual([{ view_count: 2 }]);
+      expect(
+        (await db.query(`select 1 from title_views_daily where title_id = $1`, [hid])).rowCount,
+      ).toBe(0);
+
+      const seen = (who: Who) =>
+        as(
+          who,
+          async () =>
+            (
+              await db.query(
+                `select title_id from title_views_daily where title_id = any($1::uuid[])`,
+                [[pub, hid]],
+              )
+            ).rows.length,
+        );
+      expect(await seen("anon")).toBe(1);
+
+      for (const who of ["anon", "user"] as const) {
+        await expect(
+          as(who, () => db.query(`select record_title_view($1)`, [`home-views-pub-${tag}`])),
+        ).rejects.toThrow();
+      }
+    });
+  });
 });

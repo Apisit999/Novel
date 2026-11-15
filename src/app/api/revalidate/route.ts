@@ -12,7 +12,7 @@ import { parseServerEnv } from "@/lib/env";
  *
  * ไม่ตั้ง REVALIDATE_SECRET → endpoint นี้ปิด (ตอบ 404 เหมือนไม่มีอยู่)
  */
-const ALLOWED_TAGS = ["catalog", "settings"] as const;
+const ALLOWED_TAGS = ["catalog", "settings", "home"] as const;
 const bodySchema = z.object({ tags: z.array(z.enum(ALLOWED_TAGS)).min(1).optional() });
 
 function safeEqual(a: string, b: string): boolean {

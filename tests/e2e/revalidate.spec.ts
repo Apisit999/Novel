@@ -21,7 +21,7 @@ test.describe("POST /api/revalidate (เคลียร์แคช)", () => {
     const headers = { "x-revalidate-secret": REVALIDATE_SECRET! };
     const all = await request.post("/api/revalidate", { headers });
     expect(all.status()).toBe(200);
-    expect((await all.json()).revalidated).toEqual(["catalog", "settings"]);
+    expect((await all.json()).revalidated).toEqual(["catalog", "settings", "home"]);
 
     const one = await request.post("/api/revalidate", { headers, data: { tags: ["catalog"] } });
     expect((await one.json()).revalidated).toEqual(["catalog"]);

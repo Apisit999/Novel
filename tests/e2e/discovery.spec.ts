@@ -60,7 +60,14 @@ test.describe("ข้อมูลจริง (ต้องมี SUPABASE_SERVI
 
       await page.goto("/");
       const banner = page.getByRole("region", { name: "เรื่องเด่น" });
-      await expect(banner.getByRole("heading", { name: "เรื่องเด่นทดสอบ" })).toBeVisible();
+      // แบนเนอร์มีหลายเรื่อง (เรื่องที่แอดมินปักของเทสต์อื่นที่รันพร้อมกันขึ้นก่อนได้) → กดเรื่องถัดไปจนเจอ
+      const heading = banner.getByRole("heading", { name: "เรื่องเด่นทดสอบ" });
+      const next = page.getByRole("button", { name: "เรื่องเด่นถัดไป" });
+      for (let i = 0; i < 6 && !(await heading.isVisible()); i++) {
+        if ((await next.count()) === 0) break;
+        await next.click();
+      }
+      await expect(heading).toBeVisible();
       await expect(
         page.getByRole("region", { name: "อัปเดตล่าสุด" }).getByRole("link", { name: /เรื่องเด่นทดสอบ/ }),
       ).toBeVisible();
