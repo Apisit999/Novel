@@ -29,8 +29,12 @@ export async function GET(request: NextRequest) {
       providerError,
       searchParams.get("error_description") ?? "",
     );
+    const detail =
+      process.env.NODE_ENV === "production"
+        ? ""
+        : `&detail=${encodeURIComponent(`${providerError}: ${searchParams.get("error_description") ?? ""}`.slice(0, 300))}`; // เฉพาะตอนพัฒนา: ให้เห็นสาเหตุจริงในหน้า
     return NextResponse.redirect(
-      `${origin}/login?error=${providerError === "otp_expired" ? "expired" : "provider-failed"}`,
+      `${origin}/login?error=${providerError === "otp_expired" ? "expired" : "provider-failed"}${detail}`,
     );
   }
 

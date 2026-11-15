@@ -18,7 +18,7 @@ const ERRORS: Record<string, string> = {
 const GENERIC_ERROR = "เข้าสู่ระบบไม่สำเร็จ ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาลองใหม่อีกครั้ง";
 
 async function LoginBody({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
-  const { next, error } = await searchParams;
+  const { next, error, detail } = await searchParams;
   const safe = safeNext(typeof next === "string" ? next : undefined);
   const emailLogin = getFlags().emailLoginEnabled;
 
@@ -30,6 +30,11 @@ async function LoginBody({ searchParams }: { searchParams: PageProps<"/login">["
           className="border-accent text-accent mb-6 rounded-2xl border-2 p-4 font-bold"
         >
           {(typeof error === "string" && ERRORS[error]) || GENERIC_ERROR}
+          {process.env.NODE_ENV !== "production" && typeof detail === "string" && (
+            <code className="mt-2 block text-sm font-normal break-words">
+              สาเหตุ (โหมดพัฒนา): {detail}
+            </code>
+          )}
         </p>
       )}
 
