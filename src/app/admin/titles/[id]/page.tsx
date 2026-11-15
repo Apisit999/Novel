@@ -59,6 +59,7 @@ export default async function EditTitlePage({
             rating: title.rating,
             access: title.access,
             published: title.published,
+            featured: title.featured,
             tags,
           }}
         />

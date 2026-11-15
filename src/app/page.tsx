@@ -2,20 +2,28 @@ import Link from "next/link";
 import { SITE } from "@/lib/site";
 import { CONTENT_TYPES } from "@/content-types/registry";
 import { SearchForm } from "@/components/search-form";
-import { getFeatured, listAllTitles, listTitles } from "@/features/catalog/catalog";
+import {
+  getFeatured,
+  listAllTitles,
+  listLatestUpdated,
+  listPopular,
+  listTitles,
+} from "@/features/catalog/catalog";
 import { FavoriteButton } from "@/features/library/library-actions";
 import { ContinueStrip } from "@/features/library/library-view";
 import { isPaywallEnabled } from "@/features/access/paywall";
 import { coverColor } from "@/features/catalog/cover";
-import { STATUS_LABEL, TitleCard, TitleGrid } from "@/features/catalog/title-card";
+import { STATUS_LABEL, TitleRow } from "@/features/catalog/title-card";
 
 export default async function HomePage() {
   const showPremium = await isPaywallEnabled();
-  const [featured, allTitles, sections] = await Promise.all([
+  const [featured, allTitles, latest, popular, sections] = await Promise.all([
     getFeatured(),
     listAllTitles(),
+    listLatestUpdated(12),
+    listPopular(12),
     Promise.all(
-      CONTENT_TYPES.map(async (t) => ({ def: t, titles: (await listTitles(t.id)).slice(0, 5) })),
+      CONTENT_TYPES.map(async (t) => ({ def: t, titles: (await listTitles(t.id)).slice(0, 12) })),
     ),
   ]);
 
@@ -55,6 +63,18 @@ export default async function HomePage() {
         </section>
       )}
 
+      {latest.length > 0 && (
+        <Row id="latest" heading="อัปเดตล่าสุด">
+          <TitleRow titles={latest} showPremium={showPremium} />
+        </Row>
+      )}
+
+      {popular.length > 0 && (
+        <Row id="popular" heading="ยอดนิยม">
+          <TitleRow titles={popular} showPremium={showPremium} />
+        </Row>
+      )}
+
       {sections.map(({ def, titles }) => (
         <section key={def.id} aria-labelledby={`sec-${def.id}`} className="flex flex-col gap-4">
           <div className="border-border flex items-baseline justify-between border-b-2 pb-2">
@@ -68,14 +88,30 @@ export default async function HomePage() {
           {titles.length === 0 ? (
             <p className="text-muted">ยังไม่มี{def.label}</p>
           ) : (
-            <TitleGrid>
-              {titles.map((t) => (
-                <TitleCard key={t.slug} title={t} showPremium={showPremium} />
-              ))}
-            </TitleGrid>
+            <TitleRow titles={titles} showPremium={showPremium} />
           )}
         </section>
       ))}
     </div>
+  );
+}
+
+/** หัวข้อแถว + เนื้อหา (ใช้กับแถวที่ไม่มีลิงก์ "ดูทั้งหมด") */
+function Row({
+  id,
+  heading,
+  children,
+}: {
+  id: string;
+  heading: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={`sec-${id}`} className="flex flex-col gap-4">
+      <h2 id={`sec-${id}`} className="border-border border-b-2 pb-2 text-2xl font-bold sm:text-3xl">
+        {heading}
+      </h2>
+      {children}
+    </section>
   );
 }

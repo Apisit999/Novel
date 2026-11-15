@@ -1,8 +1,11 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { Access, EpisodeAccess } from "@/features/access/can-access";
+import { adminDb } from "@/server/admin-db";
 import { publicDb } from "@/server/db";
+import { latestSlugs, pickFeatured, resolveSlugs } from "./discovery";
 import { signedReadUrls } from "@/server/storage";
+import { searchIn } from "./search";
 
 export type TitleType = "novel" | "manga" | "video";
 export type TitleStatus = "ongoing" | "completed" | "hiatus";
@@ -15,6 +18,8 @@ export interface TitleSummary {
   status: TitleStatus;
   access: Access;
   tags: string[];
+  /** แอดมินติ๊กเป็นเรื่องเด่น (แบนเนอร์หน้าแรก) */
+  featured: boolean;
 }
 
 export interface EpisodeSummary {
@@ -50,7 +55,8 @@ export interface TitleFilter {
  * revalidateTag("catalog") ให้มีผลทันที ส่วนเนื้อหาตอนไม่แคช เพราะขึ้นกับสิทธิ์ผู้อ่านตาม RLS
  */
 
-const TITLE_COLUMNS = "slug, type, name, synopsis, status, access, title_tags(tags(name))";
+const TITLE_COLUMNS =
+  "slug, type, name, synopsis, status, access, featured, title_tags(tags(name))";
 
 interface TitleRow {
   slug: string;
@@ -59,6 +65,7 @@ interface TitleRow {
   synopsis: string;
   status: TitleStatus;
   access: Access;
+  featured: boolean;
   title_tags: { tags: { name: string } | null }[];
 }
 
@@ -70,6 +77,7 @@ function toSummary(row: TitleRow): TitleSummary {
     synopsis: row.synopsis,
     status: row.status,
     access: row.access,
+    featured: row.featured,
     tags: row.title_tags.flatMap((t) => (t.tags ? [t.tags.name] : [])).sort(),
   };
 }
@@ -176,19 +184,68 @@ export async function getNovelEpisode(
   return result;
 }
 
-/** ค้นหาจากชื่อ เรื่องย่อ และแท็ก ข้ามทุกประเภท (ตอนนี้จับคำตรง ๆ; ค้นหาไทยจริงจังรอเฟส 6) */
+/** ค้นหาจากชื่อ เรื่องย่อ และแท็ก ข้ามทุกประเภท — ตัดคำไทยและเรียงคะแนนใน search.ts */
 export async function searchTitles(query: string): Promise<TitleSummary[]> {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  return (await listAllTitles()).filter((t) =>
-    [t.name, t.synopsis, ...t.tags].some((s) => s.toLowerCase().includes(q)),
+  return searchIn(await listAllTitles(), query.slice(0, 100));
+}
+
+/** เรื่องที่มีตอนออกล่าสุด (ใหม่สุดก่อน) — ใช้ตอนที่ออกจริง ไม่ใช่เวลาแก้เรื่อง */
+export async function listLatestUpdated(limit = 10): Promise<TitleSummary[]> {
+  const slugs = await latestEpisodeSlugs();
+  return resolveSlugs(slugs, await listAllTitles()).slice(0, limit);
+}
+
+async function latestEpisodeSlugs(): Promise<string[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog");
+
+  // RLS ให้เห็นเฉพาะตอนที่เผยแพร่แล้ว (รวมตอนตั้งเวลาที่ถึงเวลาแล้ว)
+  const rows = must(
+    await publicDb()
+      .from("episodes")
+      .select("created_at, publish_at, titles!inner(slug)")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    "ตอนล่าสุด",
+  );
+  return latestSlugs(rows.map((r) => ({ slug: r.titles.slug, at: r.publish_at ?? r.created_at })));
+}
+
+/** เรื่องยอดนิยมตามยอดอ่าน/ดู (เฉพาะเรื่องที่มียอดแล้ว) */
+export async function listPopular(limit = 10): Promise<TitleSummary[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "views");
+
+  const rows = must(
+    await publicDb()
+      .from("title_views")
+      .select("view_count, titles!inner(slug)")
+      .gt("view_count", 0)
+      .order("view_count", { ascending: false })
+      .limit(limit),
+    "ยอดนิยม",
+  );
+  return resolveSlugs(
+    rows.map((r) => r.titles.slug),
+    await listAllTitles(),
   );
 }
 
-/** เรื่องเด่นหน้าแรก (เฟส 3 ให้แอดมินเลือกเอง) */
+/** เรื่องเด่นหน้าแรก: จากที่แอดมินติ๊ก ถ้าไม่มีใช้เรื่องที่อัปเดตล่าสุด */
 export async function getFeatured(): Promise<TitleSummary | undefined> {
-  const all = await listAllTitles();
-  return all.find((t) => t.type === "novel" && t.access === "premium") ?? all[0];
+  return pickFeatured(await listAllTitles(), await latestEpisodeSlugs());
+}
+
+/** นับยอดอ่าน 1 ครั้ง (ฝั่งเซิร์ฟเวอร์เท่านั้น ใช้ service role) — พังเงียบ ๆ ไม่ให้กระทบการอ่าน */
+export async function recordTitleView(slug: string): Promise<void> {
+  try {
+    const { error } = await adminDb().rpc("record_title_view", { p_slug: slug });
+    if (error) console.error("นับยอดอ่านไม่สำเร็จ:", error.message);
+  } catch (e) {
+    console.error("นับยอดอ่านไม่สำเร็จ:", e instanceof Error ? e.message : e);
+  }
 }
 
 /** ทุกเรื่องพร้อมตอน (ไว้สร้าง sitemap) — เฉพาะที่ผู้เยี่ยมชมเปิดอ่านได้ฟรี */

@@ -45,6 +45,7 @@ export async function saveTitle(_prev: FormState, formData: FormData): Promise<F
     rating: formData.get("rating"),
     access: formData.get("access"),
     published: formData.get("published") === "on",
+    featured: formData.get("featured") === "on",
     tags: String(formData.get("tags") ?? ""),
   });
   if (!parsed.success) return { error: firstIssue(parsed.error) };

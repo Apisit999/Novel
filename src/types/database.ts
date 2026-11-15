@@ -6,6 +6,26 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18";
   };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: { extensions?: Json; operationName?: string; query?: string; variables?: Json };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
       app_settings: {
@@ -364,11 +384,36 @@ export type Database = {
           },
         ];
       };
+      title_views: {
+        Row: {
+          title_id: string;
+          view_count: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          title_id: string;
+          view_count?: number;
+        };
+        Update: {
+          title_id?: string;
+          view_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "title_views_title_id_fkey";
+            columns: ["title_id"];
+            isOneToOne: true;
+            referencedRelation: "titles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       titles: {
         Row: {
           access: Database["public"]["Enums"]["access_level"];
           cover_key: string | null;
           created_at: string;
+          featured: boolean;
           id: string;
           name: string;
           published: boolean;
@@ -384,6 +429,7 @@ export type Database = {
           access?: Database["public"]["Enums"]["access_level"];
           cover_key?: string | null;
           created_at?: string;
+          featured?: boolean;
           id?: string;
           name: string;
           published?: boolean;
@@ -398,6 +444,7 @@ export type Database = {
           access?: Database["public"]["Enums"]["access_level"];
           cover_key?: string | null;
           created_at?: string;
+          featured?: boolean;
           id?: string;
           name?: string;
           published?: boolean;
@@ -448,6 +495,7 @@ export type Database = {
       can_access: { Args: { p_episode_id: string }; Returns: boolean };
       episode_is_visible: { Args: { p_episode_id: string }; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      record_title_view: { Args: { p_slug: string }; Returns: undefined };
     };
     Enums: {
       access_level: "free" | "premium";
@@ -568,6 +616,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       access_level: ["free", "premium"],

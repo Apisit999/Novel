@@ -16,6 +16,7 @@ export default async function NewTitlePage() {
           rating: "all",
           access: "free",
           published: false,
+          featured: false,
           tags: "",
         }}
       />

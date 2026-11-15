@@ -17,6 +17,8 @@ export const titleSchema = z.object({
   rating: z.enum(["all", "13", "18"]),
   access: z.enum(["free", "premium"]),
   published: z.boolean(),
+  /** เรื่องเด่น: ขึ้นแบนเนอร์หน้าแรก */
+  featured: z.boolean(),
   /** คั่นด้วยจุลภาค — แท็กใหม่จะถูกสร้างให้ */
   tags: z
     .string()

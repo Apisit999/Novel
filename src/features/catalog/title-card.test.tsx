@@ -11,6 +11,7 @@ const base: TitleSummary = {
   status: "ongoing",
   access: "premium",
   tags: [],
+  featured: false,
 };
 
 describe("TitleCard ป้าย premium", () => {

@@ -15,6 +15,7 @@ export interface TitleFormValues {
   rating: "all" | "13" | "18";
   access: "free" | "premium";
   published: boolean;
+  featured: boolean;
   tags: string;
 }
 
@@ -110,6 +111,21 @@ export function TitleForm({ values }: { values: TitleFormValues }) {
         <span>
           <strong>เผยแพร่เรื่องนี้</strong>
           <span className="text-muted block text-sm">ไม่ติ๊ก = ผู้อ่านมองไม่เห็นเรื่องนี้ (เห็นเฉพาะแอดมิน)</span>
+        </span>
+      </label>
+
+      <label className="flex min-h-12 items-center gap-3">
+        <input
+          type="checkbox"
+          name="featured"
+          defaultChecked={values.featured}
+          className="h-6 w-6"
+        />
+        <span>
+          <strong>เรื่องเด่น</strong>
+          <span className="text-muted block text-sm">
+            แสดงเป็นแบนเนอร์หน้าแรก (ติ๊กหลายเรื่องได้ หน้าแรกจะแสดงเรื่องที่อัปเดตล่าสุดก่อน)
+          </span>
         </span>
       </label>
 

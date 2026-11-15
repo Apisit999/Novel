@@ -30,6 +30,7 @@ describe("titleSchema", () => {
     rating: "all",
     access: "free",
     published: false,
+    featured: false,
     tags: "",
   };
   it("แท็ก: ตัดช่องว่าง ตัดซ้ำ ตัดค่าว่าง", () => {

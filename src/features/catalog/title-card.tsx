@@ -40,6 +40,28 @@ export function TitleCard({
   );
 }
 
+/**
+ * แถวปกเลื่อนแนวนอน (สไตล์ Netflix) — เลื่อนด้วยนิ้ว/ล้อเมาส์ และโฟกัสด้วยคีย์บอร์ดได้
+ * แต่ละการ์ดกว้างคงที่ ให้เห็นปกถัดไปโผล่ครึ่งใบเป็นเครื่องหมายว่าเลื่อนต่อได้
+ */
+export function TitleRow({
+  titles,
+  showPremium = false,
+}: {
+  titles: TitleSummary[];
+  showPremium?: boolean;
+}) {
+  return (
+    <ul className="-mx-4 flex snap-x snap-proximity scroll-px-4 gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0">
+      {titles.map((t) => (
+        <li key={t.slug} className="w-36 shrink-0 snap-start sm:w-44">
+          <TitleCard title={t} showPremium={showPremium} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** ตารางปก: 2 คอลัมน์บนมือถือ → 3 → 4 → 5 ตามความกว้างจอ */
 export function TitleGrid({ children }: { children: React.ReactNode }) {
   return (

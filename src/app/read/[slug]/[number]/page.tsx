@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { canAccess, effectiveAccess } from "@/features/access/can-access";
 import {
   getMangaEpisode,
   getNovelEpisode,
   getTitle,
   listEpisodes,
+  recordTitleView,
 } from "@/features/catalog/catalog";
 import { MangaReader } from "@/features/reader/manga-reader";
 import { NovelReader, type ReaderBody, type ReaderLang } from "@/features/reader/novel-reader";
@@ -63,6 +65,9 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
       </article>
     );
   }
+
+  // นับยอดอ่านหลังตอบผู้อ่านไปแล้ว (ไม่หน่วงหน้า) — เฉพาะ production จะได้ไม่ปนยอดจากตอนพัฒนา
+  if (process.env.NODE_ENV === "production") after(() => recordTitleView(slug));
 
   const prev = episodes.find((e) => e.number === n - 1);
   const next = episodes.find((e) => e.number === n + 1);

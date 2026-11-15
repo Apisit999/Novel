@@ -79,3 +79,10 @@ export async function revalidateCatalog() {
 }
 
 export const REVALIDATE_SECRET = env("REVALIDATE_SECRET");
+
+/** ไคลเอนต์ผู้เยี่ยมชม (anon key) — ไว้ตรวจว่าสิ่งที่ไม่ควรทำได้ ทำไม่ได้จริง */
+export function anon() {
+  return createClient(url!, env("NEXT_PUBLIC_SUPABASE_ANON_KEY")!, {
+    auth: { persistSession: false },
+  });
+}
