@@ -68,9 +68,11 @@ test.describe("ตัวอ่านมังงะ (ต้องมี SUPABASE
   });
 
   test("รูปไม่ได้เปิดสาธารณะ: URL สาธารณะของไฟล์ใช้ไม่ได้ มีแต่ลิงก์ที่ออกให้", async ({ page, request }) => {
-    expect(SUPABASE_URL).toContain("supabase"); // กันเทสต์ผ่านลอย ๆ เพราะยิงผิดที่
+    expect(SUPABASE_URL.startsWith("http")).toBe(true); // กันเทสต์ผ่านลอย ๆ เพราะไม่ได้ตั้งที่อยู่ (ใน CI เป็น Supabase ในเครื่อง)
     const direct = await request.get(`${SUPABASE_URL}/storage/v1/object/public/manga/${firstKey}`);
-    expect(direct.status()).toBe(400); // บัคเก็ตส่วนตัว: ไม่มี URL สาธารณะ (Supabase ตอบ "Bucket not found")
+    // บัคเก็ตส่วนตัว: ไม่มี URL สาธารณะ — คลาวด์ตอบ 400 "Bucket not found", Supabase ในเครื่องอาจตอบ 404
+    expect(direct.status()).toBeGreaterThanOrEqual(400);
+    expect(direct.status()).toBeLessThan(500);
 
     await page.goto(`/read/${slug}/1`);
     const src = await page.locator("article img").first().getAttribute("src");
