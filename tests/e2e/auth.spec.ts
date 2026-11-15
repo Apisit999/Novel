@@ -16,14 +16,17 @@ test.beforeEach(({}, info) => {
   test.skip(info.project.name !== "desktop", "ระบบบัญชีทดสอบบนจอคอมอย่างเดียว");
 });
 
-test("หน้าเข้าสู่ระบบ: ปุ่ม Google เป็นทางหลัก ช่องอีเมลปิดอยู่ (EMAIL_LOGIN_ENABLED=false)", async ({
+test("หน้าเข้าสู่ระบบ: ปุ่ม Google เป็นทางหลัก ช่องอีเมลแสดงตามสวิตช์ EMAIL_LOGIN_ENABLED", async ({
   page,
 }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "เข้าสู่ระบบ" })).toBeVisible();
   await expect(page.getByRole("button", { name: "ดำเนินการต่อด้วย Google" })).toBeVisible();
-  await expect(page.getByLabel("อีเมล")).toHaveCount(0);
-  await expect(page.getByText("เราใช้บัญชี Google เพื่อยืนยันตัวตนเท่านั้น")).toBeVisible();
+  const emailOn = (await page.getByLabel("อีเมล").count()) > 0; // ตามสวิตช์ของเซิร์ฟเวอร์ที่รันอยู่
+
+  await expect(
+    page.getByText(emailOn ? "เราใช้บัญชี Google หรืออีเมล" : "เราใช้บัญชี Google เพื่อยืนยันตัวตนเท่านั้น"),
+  ).toBeVisible();
 });
 
 test("ลิงก์ที่ไม่ถูกต้อง และการกดยกเลิกที่หน้า Google แสดงข้อความที่เหมาะสม", async ({ page }) => {
@@ -46,7 +49,10 @@ test("กดปุ่ม Google: ไปหน้าของ Google ถ้าต
   await page.waitForURL(/accounts\.google\.com|\/login\?error=provider/, { timeout: 15_000 });
   if (page.url().includes("accounts.google.com")) {
     // ตั้งค่า Google ครบแล้ว: ต้องเป็นหน้าเลือกบัญชีของ Google และกลับมาที่ callback ของเรา
-    expect(decodeURIComponent(page.url())).toContain("/auth/callback");
+    let url = page.url(); // Google เข้ารหัส redirect_to ซ้อนไม่เท่ากันในแต่ละรอบ → ถอดวนจนนิ่ง
+    for (let i = 0; i < 4; i++) url = decodeURIComponent(url);
+    expect(url).toContain("/auth/callback");
+    expect(url).toContain("/auth/v1/callback"); // Google ต้องส่งกลับ Supabase
   } else {
     await expect(page.getByText("ยังเข้าสู่ระบบด้วย Google ไม่ได้")).toBeVisible();
   }
