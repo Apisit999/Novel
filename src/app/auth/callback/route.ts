@@ -21,6 +21,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=denied`);
   }
 
+  // Supabase/Google ส่งสาเหตุกลับมาใน query (เช่น ?error=server_error&error_code=...&error_description=...)
+  const providerError = searchParams.get("error_code") ?? searchParams.get("error");
+  if (providerError && !code && !tokenHash) {
+    console.error(
+      "auth/callback: ผู้ให้บริการแจ้งข้อผิดพลาด:",
+      providerError,
+      searchParams.get("error_description") ?? "",
+    );
+    return NextResponse.redirect(
+      `${origin}/login?error=${providerError === "otp_expired" ? "expired" : "provider-failed"}`,
+    );
+  }
+
   const db = await authDb();
   let error: unknown = new Error("ลิงก์ไม่ครบ");
   if (code) {
@@ -33,7 +46,12 @@ export async function GET(request: NextRequest) {
     // บันทึกเฉพาะรหัส/สถานะ (ไม่บันทึกโทเคนหรืออีเมล) ไว้ไล่ปัญหา เช่น ลิงก์หมดอายุ หรือโดนจำกัดความถี่
     const e = error as { code?: string; status?: number; message?: string };
     console.error("auth/callback ล้มเหลว:", e.status ?? "-", e.code ?? e.message);
-    return NextResponse.redirect(`${origin}/login?error=1`);
+    // ไม่มี code verifier = เปิดลิงก์คนละเบราว์เซอร์/คนละโดเมน (localhost vs 127.0.0.1) กับที่กดขอลิงก์
+    const lost = /code verifier|flow_state_not_found/i.test(`${e.code ?? ""} ${e.message ?? ""}`);
+    const expired = e.code === "otp_expired";
+    return NextResponse.redirect(
+      `${origin}/login?error=${lost ? "browser" : expired ? "expired" : "1"}`,
+    );
   }
   return NextResponse.redirect(`${origin}${next}`);
 }

@@ -31,8 +31,8 @@ test("หน้าเข้าสู่ระบบ: ปุ่ม Google เป�
 
 test("ลิงก์ที่ไม่ถูกต้อง และการกดยกเลิกที่หน้า Google แสดงข้อความที่เหมาะสม", async ({ page }) => {
   await page.goto("/auth/callback?code=not-a-real-code");
-  await expect(page).toHaveURL(/\/login\?error=1/);
-  await expect(page.getByText("ไม่ถูกต้องหรือหมดอายุ")).toBeVisible();
+  await expect(page).toHaveURL(/\/login\?error=browser/); // ไม่มี code verifier ของเบราว์เซอร์นี้
+  await expect(page.getByText("เปิดลิงก์ในเบราว์เซอร์เดียวกับที่กดขอลิงก์")).toBeVisible();
 
   // Google ส่ง ?error=access_denied กลับมาเมื่อผู้ใช้กดยกเลิก
   await page.goto("/auth/callback?error=access_denied&error_description=User+denied");
@@ -102,7 +102,7 @@ test.describe("ล็อกอินจริง (ต้องมี SUPABASE_SE
     const second = await page.context().browser()!.newContext();
     const page2 = await second.newPage();
     await page2.goto(new URL(callbackUrl(user), page.url()).toString());
-    await expect(page2).toHaveURL(/\/login\?error=1/);
+    await expect(page2).toHaveURL(/\/login\?error=expired/); // ลิงก์ใช้ได้ครั้งเดียว
     await second.close();
   });
 
