@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestSlugs, pickFeatured, resolveSlugs, topTagRows } from "./discovery";
+import { latestSlugs, pickFeatured, pickFeaturedList, resolveSlugs, topTagRows } from "./discovery";
 
 describe("latestSlugs", () => {
   it("เรียงใหม่สุดก่อน เรื่องละครั้ง และข้ามเวลาเสีย", () => {
@@ -60,5 +60,25 @@ describe("topTagRows", () => {
   it("แท็กซ้ำในเรื่องเดียวไม่นับสองครั้ง / ไม่มีเรื่อง → ว่าง", () => {
     expect(topTagRows([t("a", ["x", "x"]), t("b", ["y"])])).toEqual([]);
     expect(topTagRows([])).toEqual([]);
+  });
+});
+
+describe("pickFeaturedList", () => {
+  const t = (slug: string, featured = false) => ({ slug, featured });
+  const titles = [t("a"), t("b", true), t("c"), t("d", true)];
+
+  it("เรื่องที่ติ๊กมาก่อน (อัปเดตล่าสุดก่อน) แล้วเติมด้วยเรื่องอื่นที่อัปเดตล่าสุด", () => {
+    expect(pickFeaturedList(titles, ["c", "d", "a", "b"], 3).map((x) => x.slug)).toEqual([
+      "d",
+      "b",
+      "c",
+    ]);
+  });
+  it("ไม่มีใครติ๊ก = ใช้เรื่องที่อัปเดตล่าสุด และไม่เกิน limit", () => {
+    expect(pickFeaturedList([t("a"), t("b")], ["b", "a"], 1).map((x) => x.slug)).toEqual(["b"]);
+  });
+  it("ไม่ซ้ำเรื่อง", () => {
+    const slugs = pickFeaturedList(titles, [], 10).map((x) => x.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
   });
 });

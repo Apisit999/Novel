@@ -15,10 +15,13 @@ export const STATUS_LABEL: Record<TitleStatus, string> = {
 export function TitleCard({
   title,
   showPremium = false,
+  showType = true,
 }: {
   title: TitleSummary;
   /** แสดงป้าย premium เฉพาะเมื่อเปิด paywall (ช่วงเปิดฟรีทุกอย่างเปิดอ่านได้ ไม่ควรมีป้ายหลอก) */
   showPremium?: boolean;
+  /** แสดงป้ายประเภท (ปิดได้ในโซนที่หัวโซนบอกประเภทอยู่แล้ว) */
+  showType?: boolean;
 }) {
   const label = getContentType(title.type)?.label ?? "";
   const image = coverUrl(title.coverKey);
@@ -37,9 +40,13 @@ export function TitleCard({
             className="rounded-xl object-cover"
           />
         )}
-        <span className="bg-surface text-foreground relative rounded-full px-3 py-0.5 text-sm font-bold">
-          {label}
-        </span>
+        {showType ? (
+          <span className="bg-surface text-foreground relative rounded-full px-3 py-0.5 text-sm font-bold">
+            {label}
+          </span>
+        ) : (
+          <span />
+        )}
         {showPremium && title.access === "premium" && (
           <span className="bg-accent text-accent-foreground relative rounded-full px-3 py-0.5 text-sm font-bold">
             Premium

@@ -35,6 +35,25 @@ export function pickFeatured<T extends { slug: string; featured: boolean }>(
   return [...titles].sort(byRecency)[0];
 }
 
+/**
+ * เรื่องเด่นหลายเรื่องสำหรับ Spotlight: ที่แอดมินติ๊กก่อน (อัปเดตล่าสุดก่อน)
+ * ถ้าไม่ถึง limit เติมด้วยเรื่องที่อัปเดตล่าสุดที่เหลือ — ไม่ซ้ำกัน
+ */
+export function pickFeaturedList<T extends { slug: string; featured: boolean }>(
+  titles: T[],
+  latest: string[],
+  limit = 3,
+): T[] {
+  const rank = (t: T) => {
+    const i = latest.indexOf(t.slug);
+    return i === -1 ? Infinity : i;
+  };
+  const byRecency = (a: T, b: T) => rank(a) - rank(b);
+  const chosen = titles.filter((t) => t.featured).sort(byRecency);
+  const rest = titles.filter((t) => !t.featured).sort(byRecency);
+  return [...chosen, ...rest].slice(0, limit);
+}
+
 /** แปลงรายการ slug เป็นเรื่อง ข้ามที่ไม่มี (เช่นถูกซ่อน/ลบไปแล้ว) */
 export function resolveSlugs<T extends { slug: string }>(slugs: string[], titles: T[]): T[] {
   const bySlug = new Map(titles.map((t) => [t.slug, t]));

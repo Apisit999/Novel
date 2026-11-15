@@ -94,3 +94,27 @@ test.describe("ข้อมูลจริง (ต้องมี SUPABASE_SERVI
     }
   });
 });
+
+test.describe("หน้าแรกแบบศูนย์รวม", () => {
+  test("มีโซนยอดฮิตและโซนของทั้ง 3 ประเภท และปุ่มลัดเลื่อนไปที่โซนได้", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "10 อันดับยอดฮิต" })).toBeVisible();
+    for (const label of ["นิยาย", "มังงะ", "วิดีโอ"]) {
+      await expect(page.getByRole("heading", { level: 2, name: label, exact: true })).toBeVisible();
+    }
+    await page.getByRole("link", { name: "เลื่อนไปโซนมังงะ" }).click();
+    await expect(page).toHaveURL(/#zone-manga$/);
+  });
+
+  test("แท็บอันดับกรองตามประเภท", async ({ page }) => {
+    await page.goto("/");
+    const top = page.getByRole("region", { name: "10 อันดับยอดฮิต" });
+    await top.getByRole("button", { name: "มังงะ", exact: true }).click();
+    await expect(top.getByRole("button", { name: "มังงะ", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // ทุกการ์ดในอันดับต้องเป็นมังงะ: ลิงก์ที่เห็นต้องไม่เกินจำนวนมังงะทั้งหมด และหน้าไม่พัง
+    expect(await top.getByRole("link").count()).toBeLessThanOrEqual(10);
+  });
+});

@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import type { Access, EpisodeAccess } from "@/features/access/can-access";
 import { adminDb } from "@/server/admin-db";
 import { publicDb } from "@/server/db";
-import { latestSlugs, pickFeatured, resolveSlugs } from "./discovery";
+import { latestSlugs, pickFeatured, pickFeaturedList, resolveSlugs } from "./discovery";
 import { signedReadUrls } from "@/server/storage";
 import { searchIn } from "./search";
 
@@ -240,6 +240,11 @@ export async function listPopular(limit = 10): Promise<TitleSummary[]> {
 /** เรื่องเด่นหน้าแรก: จากที่แอดมินติ๊ก ถ้าไม่มีใช้เรื่องที่อัปเดตล่าสุด */
 export async function getFeatured(): Promise<TitleSummary | undefined> {
   return pickFeatured(await listAllTitles(), await latestEpisodeSlugs());
+}
+
+/** เรื่องเด่นหลายเรื่องสำหรับ Spotlight (ที่แอดมินติ๊กก่อน แล้วเติมด้วยเรื่องอัปเดตล่าสุด) */
+export async function listFeatured(limit = 3): Promise<TitleSummary[]> {
+  return pickFeaturedList(await listAllTitles(), await latestEpisodeSlugs(), limit);
 }
 
 /** นับยอดอ่าน 1 ครั้ง (ฝั่งเซิร์ฟเวอร์เท่านั้น ใช้ service role) — พังเงียบ ๆ ไม่ให้กระทบการอ่าน */

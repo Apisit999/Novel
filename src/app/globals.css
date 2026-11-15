@@ -17,6 +17,11 @@
   --border: #e3d6c2;
   --accent: #9a5a34;
   --accent-foreground: #ffffff;
+  /* สีประจำประเภท (หัวโซน ป้าย ปุ่ม) — กลมกลืนกับโทนครีม-น้ำตาล */
+  --type-novel: #9a5a34;
+  --type-manga: #a04668;
+  --type-video: #2b6a69;
+  --type-fg: #ffffff;
   --read-size: 1.2rem;
   color-scheme: light;
 }
@@ -29,6 +34,10 @@
   --border: #2d2f38;
   --accent: #e08a6f;
   --accent-foreground: #14151a;
+  --type-novel: #e3a15a;
+  --type-manga: #e88aa5;
+  --type-video: #6fcfc4;
+  --type-fg: #14151a;
   color-scheme: dark;
 }
 
@@ -40,6 +49,10 @@
   --border: #dccfb0;
   --accent: #9a4a2a;
   --accent-foreground: #ffffff;
+  --type-novel: #8f4f2c;
+  --type-manga: #964060;
+  --type-video: #275f5e;
+  --type-fg: #ffffff;
 }
 
 /* ส่งค่าธีมให้ Tailwind ใช้เป็น class เช่น bg-surface, text-muted, border-border */
