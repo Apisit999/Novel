@@ -40,6 +40,21 @@ test.describe("ตัวอ่านมังงะ (ต้องมี SUPABASE
     await expect(page.getByRole("progressbar")).toBeVisible();
   });
 
+  test("ปุ่มซูม: ซูมเข้าแล้วภาพกว้างขึ้น ซูมออกกลับ 100% และปุ่มหมดช่วงถูกปิด", async ({ page }) => {
+    await page.goto(`/read/${slug}/1`);
+    const img = page.locator("article img").first();
+    const zoomOut = page.getByRole("button", { name: "ซูมออก" });
+    const zoomIn = page.getByRole("button", { name: "ซูมเข้า" });
+    await expect(zoomOut).toBeDisabled();
+    const w1 = (await img.boundingBox())!.width;
+    await zoomIn.click();
+    await expect(page.getByText("150%")).toBeVisible();
+    await expect.poll(async () => (await img.boundingBox())!.width).toBeGreaterThan(w1 * 1.4);
+    await zoomOut.click();
+    await expect(page.getByText("100%")).toBeVisible();
+    await expect.poll(async () => (await img.boundingBox())!.width).toBeCloseTo(w1, -1);
+  });
+
   test("โหมดพลิกหน้า: นับหน้า กดถัดไป/ลูกศร แล้วจำโหมดที่เลือก", async ({ page }) => {
     await page.goto(`/read/${slug}/1`);
     await page.getByRole("button", { name: "พลิกหน้า" }).click();

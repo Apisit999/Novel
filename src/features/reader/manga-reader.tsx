@@ -25,6 +25,7 @@ interface Props {
 
 type Mode = "scroll" | "page";
 const MODE_KEY = "aandoo:manga-mode";
+const ZOOM_STEPS = [1, 1.5, 2, 3];
 
 const btn =
   "border-border bg-surface text-foreground hover:border-accent min-h-12 min-w-12 cursor-pointer rounded-full border px-4 font-bold";
@@ -48,6 +49,8 @@ export function MangaReader({
   const [mode, setMode] = useState<Mode>("scroll");
   const [index, setIndex] = useState(0); // หน้าปัจจุบัน (โหมดพลิกหน้า)
   const [progress, setProgress] = useState(0);
+  const [zoomIdx, setZoomIdx] = useState(0);
+  const zoom = ZOOM_STEPS[zoomIdx];
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const lastY = useRef(0);
   const total = pages.length;
@@ -188,6 +191,29 @@ export function MangaReader({
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-2" role="group" aria-label="ซูม">
+          <button
+            type="button"
+            className={btn}
+            aria-label="ซูมออก"
+            disabled={zoomIdx === 0}
+            onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
+          >
+            −
+          </button>
+          <span className="text-muted min-w-12 text-center" aria-live="polite">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            className={btn}
+            aria-label="ซูมเข้า"
+            disabled={zoomIdx === ZOOM_STEPS.length - 1}
+            onClick={() => setZoomIdx((i) => Math.min(ZOOM_STEPS.length - 1, i + 1))}
+          >
+            +
+          </button>
+        </div>
         {mode === "page" && (
           <span className="text-muted ml-auto" aria-live="polite">
             หน้า {index + 1} / {total}
@@ -201,35 +227,49 @@ export function MangaReader({
       <h1 className="mb-4 text-2xl font-bold">{episodeName}</h1>
 
       {mode === "scroll" ? (
-        <div className="mx-auto flex max-w-[860px] flex-col">
-          {pages.map((p, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={p.pageNo}
-              src={p.url}
-              alt={`หน้า ${p.pageNo}`}
-              width={p.width ?? undefined}
-              height={p.height ?? undefined}
-              loading={i < 2 ? "eager" : "lazy"}
-              decoding="async"
-              className="bg-surface block h-auto w-full"
-              style={{ aspectRatio: ratio(p) }}
-            />
-          ))}
+        <div className="overflow-x-auto">
+          <div
+            className="mx-auto flex flex-col"
+            style={{ width: `${zoom * 100}%`, maxWidth: zoom === 1 ? 860 : "none" }}
+          >
+            {pages.map((p, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={p.pageNo}
+                src={p.url}
+                alt={`หน้า ${p.pageNo}`}
+                width={p.width ?? undefined}
+                height={p.height ?? undefined}
+                loading={i < 2 ? "eager" : "lazy"}
+                decoding="async"
+                className="bg-surface block h-auto w-full"
+                style={{ aspectRatio: ratio(p) }}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="mx-auto max-w-[860px]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            key={pages[index].pageNo}
-            src={pages[index].url}
-            alt={`หน้า ${pages[index].pageNo}`}
-            width={pages[index].width ?? undefined}
-            height={pages[index].height ?? undefined}
-            decoding="async"
-            className="bg-surface mx-auto block h-auto max-h-[calc(100dvh-8rem)] w-auto max-w-full object-contain"
-            style={{ aspectRatio: ratio(pages[index]) }}
-          />
+          <div
+            className="overflow-auto"
+            style={{ maxHeight: zoom > 1 ? "calc(100dvh - 8rem)" : undefined }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={pages[index].pageNo}
+              src={pages[index].url}
+              alt={`หน้า ${pages[index].pageNo}`}
+              width={pages[index].width ?? undefined}
+              height={pages[index].height ?? undefined}
+              decoding="async"
+              className="bg-surface mx-auto block h-auto w-auto max-w-full object-contain"
+              style={{
+                aspectRatio: ratio(pages[index]),
+                maxHeight: zoom === 1 ? "calc(100dvh - 8rem)" : undefined,
+                ...(zoom > 1 ? { width: `${zoom * 100}%`, maxWidth: "none" } : {}),
+              }}
+            />
+          </div>
           <div className="mt-4 flex justify-between gap-3">
             <button type="button" onClick={() => go(-1)} className={btn} aria-label="หน้าก่อนหน้า">
               ← ก่อนหน้า
