@@ -56,12 +56,12 @@ npx playwright install chromium webkit
 CI (GitHub Actions) รัน: format → lint → typecheck → unit → **เริ่ม Supabase ในเครื่อง** → test:db → e2e
 หมายเหตุ: เทสต์ล็อกอิน/หลังบ้านใช้โควตาการยืนยันลิงก์ของ Supabase บนคลาวด์ (30 ครั้ง/5 นาที) อย่ารันวนติดกันหลายรอบ — ใน CI ใช้ฐานข้อมูลในเครื่องซึ่งผ่อนโควตาไว้แล้ว
 
-## Deploy ขึ้น Vercel (ยังไม่ได้ทำ)
+## Deploy ขึ้น Vercel (ยังไม่ได้ทำ — build production ผ่านแล้วในเครื่อง)
 
 1. Import repo ที่ vercel.com (ล็อกอินด้วย GitHub) — `main` = production, branch อื่น = preview
-2. ตั้ง Environment Variables ใน Vercel: `NEXT_PUBLIC_SITE_URL` (โดเมนจริง), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (ตั้งเป็น Sensitive), `SIGNUP_ENABLED` (ไม่บังคับ)
+2. ตั้ง Environment Variables ใน Vercel: `NEXT_PUBLIC_SITE_URL` (โดเมนจริง), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (ตั้งเป็น Sensitive), `SIGNUP_ENABLED` (ไม่บังคับ) — `NEXT_PUBLIC_SUPABASE_URL` ต้องมีตอน build ด้วย เพราะ `next.config.ts` ใช้อนุญาตโดเมนรูปปก (`next/image`)
 3. Supabase → Authentication → URL Configuration: ตั้ง **Site URL** เป็นโดเมนจริง และเพิ่ม **Redirect URLs** `https://โดเมนจริง/**`
-4. เปิด Google Login (ขั้นตอนใน PLAN.md) แล้วใส่โดเมนจริงใน Authorized domains ของ OAuth consent screen
+4. Google Login ตั้งค่าไว้แล้วสำหรับ localhost — เมื่อมีโดเมนจริง: ใส่โดเมนใน Authorized domains ของ OAuth consent screen และกด Publish app (ค้างที่ Testing = ล็อกอินได้เฉพาะ Test users) ส่วน redirect URI ของ Google ยังเป็น `https://<project>.supabase.co/auth/v1/callback` ตัวเดิม ไม่ต้องเปลี่ยน
 5. ก่อนเปิดตัว: ตั้ง SMTP ของตัวเองใน Supabase (ถ้าเปิดล็อกอินอีเมล), ตั้ง region ฟังก์ชัน Vercel ใกล้ฐานข้อมูล (Mumbai → `bom1`) เพื่อลดความหน่วง
 6. อย่าใช้โปรเจกต์ Supabase ตัวเดียวกันเป็นทั้งที่พัฒนาและ production — สร้างแยกก่อนเปิดตัว แล้ว `db:push` + ใส่ข้อมูลจริงผ่านหลังบ้าน (ไม่ต้องรัน seed.sql)
 
