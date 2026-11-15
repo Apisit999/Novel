@@ -21,11 +21,14 @@ const EXT_BY_TYPE: Record<string, ConvertedImage["ext"] | undefined> = {
   "image/png": "png",
 };
 
-export async function convertForUpload(file: File): Promise<ConvertedImage> {
+export async function convertForUpload(
+  file: File,
+  maxWidth: number = MAX_WIDTH,
+): Promise<ConvertedImage> {
   const bitmap = await createImageBitmap(file);
   const { width: srcW, height: srcH } = bitmap;
   try {
-    const scale = srcW > MAX_WIDTH ? MAX_WIDTH / srcW : 1;
+    const scale = srcW > maxWidth ? maxWidth / srcW : 1;
     const width = Math.round(srcW * scale);
     const height = Math.round(srcH * scale);
 

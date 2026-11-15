@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { deleteTitle } from "@/features/admin/actions";
 import { requireAdmin } from "@/features/admin/guard";
 import { isoToThaiLocal } from "@/features/admin/schemas";
+import { CoverUploader } from "@/features/admin/cover-uploader";
 import { TitleForm } from "@/features/admin/title-form";
 import { Badge, dangerBtn, ghostBtn } from "@/features/admin/ui";
 
@@ -48,6 +49,10 @@ export default async function EditTitlePage({
             บันทึกแล้ว
           </p>
         )}
+        <div className="mb-8">
+          <h2 className="mb-3 text-xl font-bold">ปก</h2>
+          <CoverUploader titleId={title.id} coverKey={title.cover_key} />
+        </div>
         <TitleForm
           values={{
             id: title.id,

@@ -61,7 +61,17 @@ export async function makeAdmin(id: string) {
 
 /** เก็บกวาดเรื่องทดสอบ (ลบแล้ว FK cascade ลบตอน/เนื้อหา/คำแปลตามไปเอง) */
 export async function deleteTitleBySlug(slug: string) {
-  await admin().from("titles").delete().eq("slug", slug);
+  const db = admin();
+  const t = await db.from("titles").select("id").eq("slug", slug).maybeSingle();
+  const titleId = t.data?.id;
+  if (titleId) {
+    // ไฟล์ปกไม่ถูก cascade ตามฐานข้อมูล — ลบเอง
+    const files = await db.storage.from("covers").list(titleId);
+    if (files.data?.length) {
+      await db.storage.from("covers").remove(files.data.map((f) => `${titleId}/${f.name}`));
+    }
+  }
+  await db.from("titles").delete().eq("slug", slug);
 }
 
 /**

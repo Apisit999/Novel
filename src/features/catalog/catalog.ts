@@ -18,6 +18,8 @@ export interface TitleSummary {
   status: TitleStatus;
   access: Access;
   tags: string[];
+  /** คีย์รูปปกในบัคเก็ต covers (null = ยังไม่มีปก) */
+  coverKey: string | null;
   /** แอดมินติ๊กเป็นเรื่องเด่น (แบนเนอร์หน้าแรก) */
   featured: boolean;
 }
@@ -56,7 +58,7 @@ export interface TitleFilter {
  */
 
 const TITLE_COLUMNS =
-  "slug, type, name, synopsis, status, access, featured, title_tags(tags(name))";
+  "slug, type, name, synopsis, status, access, featured, cover_key, title_tags(tags(name))";
 
 interface TitleRow {
   slug: string;
@@ -66,6 +68,7 @@ interface TitleRow {
   status: TitleStatus;
   access: Access;
   featured: boolean;
+  cover_key: string | null;
   title_tags: { tags: { name: string } | null }[];
 }
 
@@ -78,6 +81,7 @@ function toSummary(row: TitleRow): TitleSummary {
     status: row.status,
     access: row.access,
     featured: row.featured,
+    coverKey: row.cover_key,
     tags: row.title_tags.flatMap((t) => (t.tags ? [t.tags.name] : [])).sort(),
   };
 }

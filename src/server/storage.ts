@@ -47,3 +47,19 @@ export async function removeObjects(db: Db, keys: string[]) {
   const { error } = await db.storage.from(MANGA_BUCKET).remove(keys);
   if (error) console.error("removeObjects:", error.message);
 }
+
+// ---------------------------------------------------------------- รูปปกเรื่อง (บัคเก็ตสาธารณะ)
+
+export const COVERS_BUCKET = "covers";
+
+/** ลิงก์อัปโหลดปก 1 ไฟล์ (เรียกได้เฉพาะแอดมิน) */
+export async function createCoverUploadTarget(db: Db, key: string) {
+  const { data, error } = await db.storage.from(COVERS_BUCKET).createSignedUploadUrl(key);
+  if (error || !data) throw new Error(`ออกลิงก์อัปโหลดปกไม่สำเร็จ: ${error?.message}`);
+  return { key, token: data.token };
+}
+
+export async function removeCover(db: Db, key: string) {
+  const { error } = await db.storage.from(COVERS_BUCKET).remove([key]);
+  if (error) console.error("removeCover:", error.message);
+}

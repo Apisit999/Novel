@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getContentType } from "@/content-types/registry";
 import { coverColor } from "./cover";
+import { coverUrl } from "./cover-url";
 import type { TitleStatus, TitleSummary } from "./catalog";
 
 export const STATUS_LABEL: Record<TitleStatus, string> = {
@@ -19,17 +21,27 @@ export function TitleCard({
   showPremium?: boolean;
 }) {
   const label = getContentType(title.type)?.label ?? "";
+  const image = coverUrl(title.coverKey);
   return (
     <Link href={`/title/${title.slug}`} className="flex flex-col gap-2 no-underline">
       <div
         className="relative flex aspect-[2/3] flex-col items-start justify-between rounded-xl p-3"
         style={{ background: coverColor(title.slug) }}
       >
-        <span className="bg-surface text-foreground rounded-full px-3 py-0.5 text-sm font-bold">
+        {image && (
+          <Image
+            src={image}
+            alt=""
+            fill
+            sizes="(min-width: 640px) 176px, 144px"
+            className="rounded-xl object-cover"
+          />
+        )}
+        <span className="bg-surface text-foreground relative rounded-full px-3 py-0.5 text-sm font-bold">
           {label}
         </span>
         {showPremium && title.access === "premium" && (
-          <span className="bg-accent text-accent-foreground rounded-full px-3 py-0.5 text-sm font-bold">
+          <span className="bg-accent text-accent-foreground relative rounded-full px-3 py-0.5 text-sm font-bold">
             Premium
           </span>
         )}

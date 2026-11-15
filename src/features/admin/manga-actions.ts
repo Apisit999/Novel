@@ -3,7 +3,13 @@
 import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createUploadTargets, removeObjects } from "@/server/storage";
+import { updateTag } from "next/cache";
+import {
+  createCoverUploadTarget,
+  createUploadTargets,
+  removeCover,
+  removeObjects,
+} from "@/server/storage";
 import type { FormState } from "./actions";
 import { requireAdmin } from "./guard";
 import {
@@ -197,4 +203,36 @@ export async function deletePage(rawEpisodeId: string, pageNo: number): Promise<
       .eq("episode_id", episodeId)
       .eq("page_no", p.page_no);
   }
+}
+
+// ---------------------------------------------------------------- รูปปกเรื่อง
+
+/** ขอลิงก์อัปโหลดปก — คีย์ใหม่ทุกครั้ง (เปลี่ยนปกแล้ว URL เปลี่ยน แคชของเบราว์เซอร์/CDN ไม่ค้างรูปเก่า) */
+export async function requestCoverUpload(
+  rawTitleId: string,
+  rawExt: string,
+): Promise<{ key: string; token: string }> {
+  const { db } = await requireAdmin();
+  const titleId = uuid.parse(rawTitleId);
+  const ext = imageExtSchema.parse(rawExt);
+  const { data } = await db.from("titles").select("id").eq("id", titleId).maybeSingle();
+  if (!data) throw new Error("ไม่พบเรื่อง");
+  const key = `${titleId}/${Date.now().toString(36)}-${randomBytes(3).toString("hex")}.${ext}`;
+  return createCoverUploadTarget(db, key);
+}
+
+/** ตั้งปกเรื่อง (key = null → ลบปก) แล้วลบไฟล์ปกเดิมทิ้ง */
+export async function setTitleCover(rawTitleId: string, rawKey: string | null): Promise<void> {
+  const { db } = await requireAdmin();
+  const titleId = uuid.parse(rawTitleId);
+  if (rawKey !== null && (!rawKey.startsWith(`${titleId}/`) || rawKey.includes(".."))) {
+    throw new Error("คีย์ไฟล์ไม่ถูกต้อง");
+  }
+  const old = await db.from("titles").select("cover_key").eq("id", titleId).maybeSingle();
+  if (!old.data) throw new Error("ไม่พบเรื่อง");
+  const { error } = await db.from("titles").update({ cover_key: rawKey }).eq("id", titleId);
+  if (error) throw new Error("บันทึกปกไม่สำเร็จ");
+  if (old.data.cover_key && old.data.cover_key !== rawKey)
+    await removeCover(db, old.data.cover_key);
+  updateTag("catalog");
 }

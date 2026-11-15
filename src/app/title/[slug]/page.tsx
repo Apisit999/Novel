@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContentType } from "@/content-types/registry";
 import { getTitle, listEpisodes } from "@/features/catalog/catalog";
 import { coverColor } from "@/features/catalog/cover";
+import { coverUrl } from "@/features/catalog/cover-url";
 import { STATUS_LABEL } from "@/features/catalog/title-card";
 import { FavoriteButton, ReadButton } from "@/features/library/library-actions";
 
@@ -16,7 +18,13 @@ export async function generateMetadata({ params }: PageProps<"/title/[slug]">): 
     title: title.name,
     description: title.synopsis,
     alternates: { canonical: url },
-    openGraph: { type: "book", title: title.name, description: title.synopsis, url },
+    openGraph: {
+      type: "book",
+      title: title.name,
+      description: title.synopsis,
+      url,
+      ...(coverUrl(title.coverKey) && { images: [{ url: coverUrl(title.coverKey)! }] }),
+    },
   };
 }
 
@@ -26,15 +34,26 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
   if (!title) notFound();
   const def = getContentType(title.type);
   const episodes = await listEpisodes(slug);
+  const image = coverUrl(title.coverKey);
 
   return (
     <section>
       <div className="flex flex-col gap-6 sm:flex-row">
         <div
-          aria-hidden="true"
-          className="aspect-[2/3] w-48 shrink-0 self-center rounded-xl sm:w-56 sm:self-start"
+          className="relative aspect-[2/3] w-48 shrink-0 self-center rounded-xl sm:w-56 sm:self-start"
           style={{ background: coverColor(slug) }}
-        />
+        >
+          {image && (
+            <Image
+              src={image}
+              alt={`ปก ${title.name}`}
+              fill
+              priority
+              sizes="224px"
+              className="rounded-xl object-cover"
+            />
+          )}
+        </div>
         <div>
           <p className="text-muted text-sm font-bold">
             {def?.label} · {STATUS_LABEL[title.status]}

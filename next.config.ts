@@ -12,7 +12,23 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
 ];
 
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : null;
+
 const nextConfig: NextConfig = {
+  images: {
+    // รูปปกอยู่ในบัคเก็ต covers (สาธารณะ) ของ Supabase เท่านั้น
+    remotePatterns: supabaseHost
+      ? [
+          {
+            protocol: "https",
+            hostname: supabaseHost,
+            pathname: "/storage/v1/object/public/covers/**",
+          },
+        ]
+      : [],
+  },
   cacheComponents: true,
   poweredByHeader: false,
   async headers() {

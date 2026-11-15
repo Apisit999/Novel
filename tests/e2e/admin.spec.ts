@@ -7,6 +7,7 @@ import {
   deleteUser,
   hasAdmin,
   makeAdmin,
+  SUPABASE_URL,
   type TestUser,
 } from "./helpers/supabase";
 
@@ -179,5 +180,60 @@ test.describe("หลังบ้านกับ Supabase จริง (ต้�
     await page.goto(url);
     await expect(page.getByText("พบฉบับร่าง")).toHaveCount(0);
     await expect(body).toHaveValue("");
+  });
+
+  test("อัปโหลดปก → การ์ด/หน้าเรื่องใช้รูปจริง → ลบปกแล้วกลับเป็นปกสี", async ({ page }) => {
+    test.setTimeout(90_000);
+    await makeAdmin(user.id);
+    const title = await admin()
+      .from("titles")
+      .insert({ slug, name: "เรื่องทดสอบปก", type: "novel", published: true })
+      .select("id")
+      .single();
+    expect(title.error).toBeNull();
+    const id = title.data!.id;
+
+    await page.goto(callbackUrl(user, `/admin/titles/${id}`));
+    await expect(page.getByText("ยังไม่มีปก")).toBeVisible();
+    // PNG 2x3 พิกเซลที่สร้างในเบราว์เซอร์ (ไม่ต้องมีไฟล์ในรีโป)
+    const png = await page.evaluate(async () => {
+      const c = document.createElement("canvas");
+      c.width = 40;
+      c.height = 60;
+      const ctx = c.getContext("2d")!;
+      ctx.fillStyle = "#c33";
+      ctx.fillRect(0, 0, 40, 60);
+      const b = await new Promise<Blob>((r) => c.toBlob((x) => r(x!), "image/png"));
+      return Array.from(new Uint8Array(await b.arrayBuffer()));
+    });
+    await page.getByLabel("เลือกไฟล์ปก").setInputFiles({
+      name: "cover.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(png),
+    });
+    await expect(page.getByAltText("ปกปัจจุบัน")).toBeVisible({ timeout: 30_000 });
+
+    const saved = await admin().from("titles").select("cover_key").eq("id", id).single();
+    const key = saved.data!.cover_key!;
+    expect(key.startsWith(`${id}/`)).toBe(true);
+
+    // ผู้เยี่ยมชม (ไม่ล็อกอิน) เห็นรูปปกสาธารณะได้
+    const pub = await page.request.get(`${SUPABASE_URL}/storage/v1/object/public/covers/${key}`);
+    expect(pub.status()).toBe(200);
+    await page.goto(`/title/${slug}`);
+    await expect(page.getByAltText("ปก เรื่องทดสอบปก")).toBeVisible();
+    await expect(page.locator('meta[property="og:image"]')).toHaveCount(1);
+
+    // ลบปก → กลับเป็นปกสี และไฟล์ถูกลบจาก Storage
+    await page.goto(`/admin/titles/${id}`);
+    await page.getByRole("button", { name: "ลบปก" }).click();
+    await expect(page.getByText("ยังไม่มีปก")).toBeVisible();
+    // เช็กที่ Storage ตรง ๆ (URL สาธารณะอาจยังถูก CDN แคชไว้ชั่วคราว)
+    const left = await admin().storage.from("covers").list(id);
+    expect(left.data).toHaveLength(0);
+    const row = await admin().from("titles").select("cover_key").eq("id", id).single();
+    expect(row.data!.cover_key).toBeNull();
+    await page.goto(`/title/${slug}`);
+    await expect(page.getByAltText("ปก เรื่องทดสอบปก")).toHaveCount(0);
   });
 });
