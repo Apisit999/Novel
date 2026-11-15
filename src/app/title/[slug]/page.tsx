@@ -6,6 +6,8 @@ import { getContentType } from "@/content-types/registry";
 import { getTitle, listEpisodes } from "@/features/catalog/catalog";
 import { coverColor } from "@/features/catalog/cover";
 import { coverUrl } from "@/features/catalog/cover-url";
+import { serializeJsonLd, titleJsonLd } from "@/features/catalog/json-ld";
+import { publicEnv } from "@/lib/env";
 import { STATUS_LABEL } from "@/features/catalog/title-card";
 import { FavoriteButton, ReadButton } from "@/features/library/library-actions";
 
@@ -38,6 +40,12 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
 
   return (
     <section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(titleJsonLd(title, publicEnv.NEXT_PUBLIC_SITE_URL)),
+        }}
+      />
       <div className="flex flex-col gap-6 sm:flex-row">
         <div
           className="relative aspect-[2/3] w-48 shrink-0 self-center rounded-xl sm:w-56 sm:self-start"

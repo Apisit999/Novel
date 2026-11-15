@@ -54,3 +54,13 @@ test("ทุกหน้าส่ง security headers พื้นฐาน แ�
     expect(h["x-powered-by"]).toBeUndefined();
   }
 });
+
+test("หน้าเรื่องมีข้อมูลโครงสร้าง JSON-LD (schema.org) ที่อ่านได้", async ({ page }) => {
+  await page.goto("/title/moonlit-garden");
+  const raw = await page.locator('script[type="application/ld+json"]').first().textContent();
+  const data = JSON.parse(raw ?? "{}");
+  expect(data["@context"]).toBe("https://schema.org");
+  expect(data["@type"]).toBe("Book");
+  expect(data.name).toBe("สวนใต้แสงจันทร์");
+  expect(data.url).toMatch(/\/title\/moonlit-garden$/);
+});
