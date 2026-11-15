@@ -43,3 +43,22 @@ export function resolveSlugs<T extends { slug: string }>(slugs: string[], titles
     return t ? [t] : [];
   });
 }
+
+/**
+ * แถวตามแท็กสำหรับหน้าแรก: แท็กที่มีเรื่องมากสุดก่อน (เท่ากันเรียงตามชื่อ ให้ผลคงที่)
+ * ข้ามแท็กที่มีน้อยกว่า minTitles เรื่อง เพราะแถวที่มีใบเดียวดูโหรง
+ */
+export function topTagRows<T extends { tags: string[] }>(
+  titles: T[],
+  { maxRows = 3, minTitles = 2, perRow = 12 } = {},
+): { tag: string; titles: T[] }[] {
+  const byTag = new Map<string, T[]>();
+  for (const t of titles) {
+    for (const tag of new Set(t.tags)) byTag.set(tag, [...(byTag.get(tag) ?? []), t]);
+  }
+  return [...byTag.entries()]
+    .filter(([, list]) => list.length >= minTitles)
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "th"))
+    .slice(0, maxRows)
+    .map(([tag, list]) => ({ tag, titles: list.slice(0, perRow) }));
+}

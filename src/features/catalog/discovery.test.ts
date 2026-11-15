@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestSlugs, pickFeatured, resolveSlugs } from "./discovery";
+import { latestSlugs, pickFeatured, resolveSlugs, topTagRows } from "./discovery";
 
 describe("latestSlugs", () => {
   it("เรียงใหม่สุดก่อน เรื่องละครั้ง และข้ามเวลาเสีย", () => {
@@ -36,5 +36,29 @@ describe("resolveSlugs", () => {
   it("คงลำดับ และข้าม slug ที่ไม่มี", () => {
     const titles = [{ slug: "a" }, { slug: "b" }];
     expect(resolveSlugs(["b", "x", "a"], titles)).toEqual([{ slug: "b" }, { slug: "a" }]);
+  });
+});
+
+describe("topTagRows", () => {
+  const t = (name: string, tags: string[]) => ({ name, tags });
+  const titles = [
+    t("1", ["แฟนตาซี", "ผจญภัย"]),
+    t("2", ["แฟนตาซี"]),
+    t("3", ["แฟนตาซี", "ผจญภัย"]),
+    t("4", ["ลึกลับ"]),
+  ];
+  it("แท็กที่มีเรื่องมากสุดก่อน และข้ามแท็กที่มีเรื่องเดียว", () => {
+    const rows = topTagRows(titles);
+    expect(rows.map((r) => r.tag)).toEqual(["แฟนตาซี", "ผจญภัย"]);
+    expect(rows[0].titles).toHaveLength(3);
+  });
+  it("จำกัดจำนวนแถวและจำนวนเรื่องต่อแถว", () => {
+    const rows = topTagRows(titles, { maxRows: 1, perRow: 2 });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].titles).toHaveLength(2);
+  });
+  it("แท็กซ้ำในเรื่องเดียวไม่นับสองครั้ง / ไม่มีเรื่อง → ว่าง", () => {
+    expect(topTagRows([t("a", ["x", "x"]), t("b", ["y"])])).toEqual([]);
+    expect(topTagRows([])).toEqual([]);
   });
 });

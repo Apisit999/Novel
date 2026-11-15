@@ -12,6 +12,7 @@ import {
 import { FavoriteButton } from "@/features/library/library-actions";
 import { ContinueStrip } from "@/features/library/library-view";
 import { isPaywallEnabled } from "@/features/access/paywall";
+import { topTagRows } from "@/features/catalog/discovery";
 import { coverColor } from "@/features/catalog/cover";
 import { STATUS_LABEL, TitleRow } from "@/features/catalog/title-card";
 
@@ -26,6 +27,8 @@ export default async function HomePage() {
       CONTENT_TYPES.map(async (t) => ({ def: t, titles: (await listTitles(t.id)).slice(0, 12) })),
     ),
   ]);
+
+  const tagRows = topTagRows(allTitles);
 
   return (
     <div className="flex flex-col gap-10">
@@ -74,6 +77,12 @@ export default async function HomePage() {
           <TitleRow titles={popular} showPremium={showPremium} />
         </Row>
       )}
+
+      {tagRows.map(({ tag, titles }) => (
+        <Row key={tag} id={`tag-${tag}`} heading={`แท็ก: ${tag}`}>
+          <TitleRow titles={titles} showPremium={showPremium} />
+        </Row>
+      ))}
 
       {sections.map(({ def, titles }) => (
         <section key={def.id} aria-labelledby={`sec-${def.id}`} className="flex flex-col gap-4">
