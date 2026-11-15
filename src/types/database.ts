@@ -71,6 +71,71 @@ export type Database = {
           },
         ];
       };
+      collection_items: {
+        Row: {
+          collection_id: string;
+          position: number;
+          title_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          collection_id: string;
+          position?: number;
+          title_id: string;
+        };
+        Update: {
+          collection_id?: string;
+          position?: number;
+          title_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "collection_items_collection_id_fkey";
+            columns: ["collection_id"];
+            isOneToOne: false;
+            referencedRelation: "collections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collection_items_title_id_fkey";
+            columns: ["title_id"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      collections: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          published: boolean;
+          slug: string;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          published?: boolean;
+          slug: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          published?: boolean;
+          slug?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       episodes: {
         Row: {
           access: Database["public"]["Enums"]["episode_access"];
@@ -115,6 +180,88 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      home_pins: {
+        Row: {
+          created_at: string;
+          ends_at: string | null;
+          id: string;
+          note: string;
+          placement: string;
+          position: number;
+          starts_at: string | null;
+          title_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          ends_at?: string | null;
+          id?: string;
+          note?: string;
+          placement: string;
+          position?: number;
+          starts_at?: string | null;
+          title_id: string;
+        };
+        Update: {
+          created_at?: string;
+          ends_at?: string | null;
+          id?: string;
+          note?: string;
+          placement?: string;
+          position?: number;
+          starts_at?: string | null;
+          title_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "home_pins_title_id_fkey";
+            columns: ["title_id"];
+            isOneToOne: false;
+            referencedRelation: "titles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      home_sections: {
+        Row: {
+          config: NonNullable<Json>;
+          created_at: string;
+          enabled: boolean;
+          ends_at: string | null;
+          id: string;
+          kind: string;
+          position: number;
+          starts_at: string | null;
+          title: string;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          config?: NonNullable<Json>;
+          created_at?: string;
+          enabled?: boolean;
+          ends_at?: string | null;
+          id?: string;
+          kind: string;
+          position?: number;
+          starts_at?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
+        Update: {
+          config?: NonNullable<Json>;
+          created_at?: string;
+          enabled?: boolean;
+          ends_at?: string | null;
+          id?: string;
+          kind?: string;
+          position?: number;
+          starts_at?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       manga_pages: {
         Row: {
@@ -403,6 +550,33 @@ export type Database = {
             foreignKeyName: "title_views_title_id_fkey";
             columns: ["title_id"];
             isOneToOne: true;
+            referencedRelation: "titles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      title_views_daily: {
+        Row: {
+          day: string;
+          title_id: string;
+          view_count: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          day?: string;
+          title_id: string;
+          view_count?: number;
+        };
+        Update: {
+          day?: string;
+          title_id?: string;
+          view_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "title_views_daily_title_id_fkey";
+            columns: ["title_id"];
+            isOneToOne: false;
             referencedRelation: "titles";
             referencedColumns: ["id"];
           },

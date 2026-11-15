@@ -1,0 +1,79 @@
+import { describe, expect, it } from "vitest";
+import { bangkokDayAgo, trendingSlugs } from "./ranking";
+
+const now = new Date("2026-11-15T09:00:00+07:00");
+
+describe("trendingSlugs", () => {
+  it("ยอดช่วงนี้ชนะยอดเก่าที่มากกว่า (ฮิตจริง ไม่ใช่ยอดสะสม)", () => {
+    const out = trendingSlugs(
+      [
+        { slug: "old", day: "2026-11-02", count: 100 }, // เก่า 13 วัน → น้ำหนักน้อยมาก
+        { slug: "new", day: "2026-11-15", count: 30 },
+      ],
+      now,
+    );
+    expect(out).toEqual(["new", "old"]);
+  });
+
+  it("รวมยอดหลายวันของเรื่องเดียวกัน", () => {
+    const out = trendingSlugs(
+      [
+        { slug: "a", day: "2026-11-15", count: 10 },
+        { slug: "a", day: "2026-11-14", count: 10 },
+        { slug: "b", day: "2026-11-15", count: 15 },
+      ],
+      now,
+    );
+    expect(out[0]).toBe("a");
+  });
+
+  it("ข้ามยอดที่เก่ากว่าหน้าต่างเวลา และยอด 0", () => {
+    const out = trendingSlugs(
+      [
+        { slug: "ancient", day: "2026-09-01", count: 9999 },
+        { slug: "zero", day: "2026-11-15", count: 0 },
+        { slug: "ok", day: "2026-11-14", count: 1 },
+      ],
+      now,
+    );
+    expect(out).toEqual(["ok"]);
+  });
+
+  it("เรื่องที่มีตอนใหม่ได้โบนัสเล็กน้อย", () => {
+    const rows = [
+      { slug: "plain", day: "2026-11-15", count: 100 },
+      { slug: "fresh", day: "2026-11-15", count: 90 },
+    ];
+    expect(trendingSlugs(rows, now)[0]).toBe("plain");
+    expect(trendingSlugs(rows, now, { fresh: ["fresh"] })[0]).toBe("fresh");
+  });
+
+  it("คะแนนเท่ากันเรียงตาม slug (ผลคงที่)", () => {
+    const out = trendingSlugs(
+      [
+        { slug: "b", day: "2026-11-15", count: 5 },
+        { slug: "a", day: "2026-11-15", count: 5 },
+      ],
+      now,
+    );
+    expect(out).toEqual(["a", "b"]);
+  });
+
+  it("วันที่เสียหรืออยู่ในอนาคตไม่ทำให้พัง", () => {
+    const out = trendingSlugs(
+      [
+        { slug: "bad", day: "not-a-day", count: 5 },
+        { slug: "future", day: "2026-12-31", count: 5 },
+      ],
+      now,
+    );
+    expect(out).toEqual(["future"]);
+  });
+});
+
+describe("bangkokDayAgo", () => {
+  it("ใช้วันตามเวลาไทย (ตี 1 ไทย = ยังเป็นวันก่อนหน้าตาม UTC)", () => {
+    expect(bangkokDayAgo(new Date("2026-11-14T18:30:00Z"), 0)).toBe("2026-11-15");
+    expect(bangkokDayAgo(new Date("2026-11-15T09:00:00+07:00"), 14)).toBe("2026-11-01");
+  });
+});

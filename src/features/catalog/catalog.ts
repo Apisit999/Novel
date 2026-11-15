@@ -3,7 +3,9 @@ import { cacheLife, cacheTag } from "next/cache";
 import type { Access, EpisodeAccess } from "@/features/access/can-access";
 import { adminDb } from "@/server/admin-db";
 import { publicDb } from "@/server/db";
+import { activePins, type Pin } from "@/features/home/pins";
 import { latestSlugs, pickFeatured, pickFeaturedList, resolveSlugs } from "./discovery";
+import { bangkokDayAgo, trendingSlugs } from "./ranking";
 import { signedReadUrls } from "@/server/storage";
 import { searchIn } from "./search";
 
@@ -321,4 +323,112 @@ export async function getMangaEpisode(
     return url ? [{ pageNo: p.page_no, url, width: p.width, height: p.height }] : [];
   });
   return { number: ep.number, name: ep.name, access: ep.access, pages };
+}
+
+// ---------------------------------------------------------------- หน้าแรกอัตโนมัติ
+
+/**
+ * เรื่องฮิต "ช่วงนี้" — คะแนนจากยอดรายวันย้อนหลัง 14 วัน ยอดใหม่หนักกว่ายอดเก่า (ดู ranking.ts)
+ * ยังไม่มียอดรายวันเลย → คืนว่าง ผู้เรียกใช้ fallback เองได้ (listPopular / listLatestUpdated)
+ */
+export async function listTrending(limit = 60): Promise<TitleSummary[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "views");
+
+  const now = new Date();
+  const rows = must(
+    await publicDb()
+      .from("title_views_daily")
+      .select("day, view_count, titles!inner(slug)")
+      .gte("day", bangkokDayAgo(now, 14))
+      .limit(5000),
+    "ยอดนิยมช่วงนี้",
+  );
+  const fresh = (await latestEpisodeSlugs()).slice(0, 5);
+  const slugs = trendingSlugs(
+    rows.map((r) => ({ slug: r.titles.slug, day: r.day, count: r.view_count })),
+    now,
+    { fresh },
+  );
+  return resolveSlugs(slugs, await listAllTitles()).slice(0, limit);
+}
+
+export interface HomeSectionRow {
+  id: string;
+  kind: string;
+  title: string;
+  position: number;
+  /** ยังไม่ตรวจ — ตรวจด้วย parseConfig ตอนแสดงผล */
+  config: unknown;
+}
+
+/** ส่วนของหน้าแรกที่เปิดอยู่และอยู่ในช่วงเวลา (RLS กรองให้ผู้เยี่ยมชม) เรียงตามตำแหน่ง */
+export async function listHomeSections(): Promise<HomeSectionRow[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("home");
+
+  const rows = must(
+    await publicDb()
+      .from("home_sections")
+      .select("id, kind, title, position, config")
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true }),
+    "ส่วนของหน้าแรก",
+  );
+  return rows;
+}
+
+/** การปักโปรโมท/ซ่อนที่ยังอยู่ในช่วงเวลา (กรองสองชั้น: RLS + activePins) */
+export async function listActivePins(): Promise<Pin[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("home", "catalog");
+
+  const rows = must(
+    await publicDb()
+      .from("home_pins")
+      .select("placement, position, starts_at, ends_at, titles!inner(slug)"),
+    "การปักโปรโมท",
+  );
+  return activePins(
+    rows.map((r) => ({
+      slug: r.titles.slug,
+      placement: r.placement as Pin["placement"],
+      position: r.position,
+      startsAt: r.starts_at,
+      endsAt: r.ends_at,
+    })),
+    new Date(),
+  );
+}
+
+export interface CollectionView {
+  title: string;
+  description: string;
+  titles: TitleSummary[];
+}
+
+/** ชุดคัดสรรตาม slug พร้อมเรื่องในชุด (เรียงตามที่แอดมินจัด) — ไม่พบ/ไม่เผยแพร่ = undefined */
+export async function getCollection(slug: string): Promise<CollectionView | undefined> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("home", "catalog");
+
+  const { data: row, error } = await publicDb()
+    .from("collections")
+    .select("title, description, collection_items(position, titles!inner(slug))")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(`อ่านชุดคัดสรรจากฐานข้อมูลไม่สำเร็จ: ${error.message}`);
+  if (!row) return undefined;
+  const slugs = [...row.collection_items]
+    .sort((a, b) => a.position - b.position)
+    .map((i) => i.titles.slug);
+  return {
+    title: row.title,
+    description: row.description,
+    titles: resolveSlugs(slugs, await listAllTitles()),
+  };
 }

@@ -12,7 +12,13 @@ import { TYPE_STYLE } from "@/features/catalog/type-style";
 type Tab = "all" | TitleType;
 
 /** 10 อันดับยอดฮิต — ตารางปก 5 ช่อง เลขอันดับเป็นป้ายสีประจำประเภทที่มุมปก */
-export function TopTen({ lists }: { lists: Record<Tab, TitleSummary[]> }) {
+export function TopTen({
+  lists,
+  heading = "10 อันดับยอดฮิต",
+}: {
+  lists: Record<Tab, TitleSummary[]>;
+  heading?: string;
+}) {
   const [tab, setTab] = useState<Tab>("all");
   const tabs: { id: Tab; label: string }[] = [
     { id: "all", label: "ทั้งหมด" },
@@ -25,7 +31,7 @@ export function TopTen({ lists }: { lists: Record<Tab, TitleSummary[]> }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 id="h-top" className="text-3xl font-bold sm:text-4xl">
-            10 อันดับยอดฮิต
+            {heading}
           </h2>
           <p className="text-muted">นับจากยอดเข้าชมจริง</p>
         </div>
