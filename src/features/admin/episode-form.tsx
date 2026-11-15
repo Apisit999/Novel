@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Markdown } from "@/features/reader/markdown";
 import { saveEpisode, type FormState } from "./actions";
 import { submitKeepingValues } from "./submit";
@@ -29,18 +29,19 @@ function MarkdownBox({
   id,
   name,
   label,
-  defaultValue,
+  text,
+  setText,
   lang,
   required,
 }: {
   id: string;
   name: string;
   label: string;
-  defaultValue: string;
+  text: string;
+  setText: (v: string) => void;
   lang: string;
   required?: boolean;
 }) {
-  const [text, setText] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
   return (
     <div className="flex flex-col gap-1.5">
@@ -90,8 +91,96 @@ export function EpisodeForm({ values }: { values: EpisodeFormValues }) {
   const [status, setStatus] = useState(values.status);
   const editing = Boolean(values.episodeId);
 
+  // ฉบับร่างอัตโนมัติ: เก็บเฉพาะเนื้อหา 3 ช่องไว้ในเบราว์เซอร์นี้ (ไม่ขึ้นเซิร์ฟเวอร์)
+  const draftKey = `episode-draft:${values.titleId}:${values.episodeId ?? "new"}`;
+  const [texts, setTexts] = useState({ body: values.body, en: values.en, zh: values.zh });
+  const [draft, setDraft] = useState<typeof texts | null>(null);
+  const touched = useRef(false);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw) as typeof texts;
+      if (
+        typeof d.body === "string" &&
+        typeof d.en === "string" &&
+        typeof d.zh === "string" &&
+        (d.body !== values.body || d.en !== values.en || d.zh !== values.zh)
+      ) {
+        const t = setTimeout(() => setDraft(d), 0); // อ่านจาก localStorage ได้เฉพาะฝั่งเบราว์เซอร์
+        return () => clearTimeout(t);
+      }
+    } catch {
+      /* ฉบับร่างเสียหาย — ข้าม */
+    }
+  }, [draftKey, values.body, values.en, values.zh]);
+
+  useEffect(() => {
+    if (!touched.current) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(texts));
+      } catch {
+        /* พื้นที่เต็ม — ไม่เป็นไร */
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [texts, draftKey]);
+
+  // บันทึกสำเร็จ (ส่งเสร็จและไม่มี error) → ล้างฉบับร่าง
+  useEffect(() => {
+    if (wasPending.current && !pending && !state.error) {
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* ไม่เป็นไร */
+      }
+    }
+    wasPending.current = pending;
+  }, [pending, state.error, draftKey]);
+
+  const setText = (k: keyof typeof texts) => (v: string) => {
+    touched.current = true;
+    setTexts((t) => ({ ...t, [k]: v }));
+  };
+
   return (
     <form onSubmit={submitKeepingValues(action)} className="flex max-w-3xl flex-col gap-5">
+      {draft && (
+        <div
+          role="status"
+          className="border-border bg-surface flex flex-wrap items-center gap-3 rounded-2xl border-2 p-4"
+        >
+          <span className="font-bold">พบฉบับร่างที่ยังไม่ได้บันทึกในเบราว์เซอร์นี้</span>
+          <button
+            type="button"
+            className="border-border min-h-10 cursor-pointer rounded-full border px-4 text-sm font-bold"
+            onClick={() => {
+              touched.current = true;
+              setTexts(draft);
+              setDraft(null);
+            }}
+          >
+            กู้คืน
+          </button>
+          <button
+            type="button"
+            className="border-border min-h-10 cursor-pointer rounded-full border px-4 text-sm font-bold"
+            onClick={() => {
+              try {
+                localStorage.removeItem(draftKey);
+              } catch {
+                /* ไม่เป็นไร */
+              }
+              setDraft(null);
+            }}
+          >
+            ทิ้ง
+          </button>
+        </div>
+      )}
       <input type="hidden" name="titleId" value={values.titleId} />
       {values.episodeId && <input type="hidden" name="episodeId" value={values.episodeId} />}
 
@@ -153,13 +242,21 @@ export function EpisodeForm({ values }: { values: EpisodeFormValues }) {
         id="body"
         name="body"
         label="เนื้อหา (ภาษาไทย ต้นฉบับ)"
-        defaultValue={values.body}
+        text={texts.body}
+        setText={setText("body")}
         lang="th"
       />
 
       <fieldset className="border-border flex flex-col gap-5 rounded-2xl border p-5">
         <legend className="px-2 font-bold">คำแปล (เว้นว่าง = ไม่มีคำแปลภาษานั้น)</legend>
-        <MarkdownBox id="en" name="en" label="English" defaultValue={values.en} lang="en" />
+        <MarkdownBox
+          id="en"
+          name="en"
+          label="English"
+          text={texts.en}
+          setText={setText("en")}
+          lang="en"
+        />
         <label className="flex min-h-12 items-center gap-3">
           <input
             type="checkbox"
@@ -169,7 +266,14 @@ export function EpisodeForm({ values }: { values: EpisodeFormValues }) {
           />
           <span>เป็นการแปลอัตโนมัติ (แสดงป้าย “แปลอัตโนมัติ” ให้ผู้อ่าน)</span>
         </label>
-        <MarkdownBox id="zh" name="zh" label="中文" defaultValue={values.zh} lang="zh" />
+        <MarkdownBox
+          id="zh"
+          name="zh"
+          label="中文"
+          text={texts.zh}
+          setText={setText("zh")}
+          lang="zh"
+        />
         <label className="flex min-h-12 items-center gap-3">
           <input
             type="checkbox"

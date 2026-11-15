@@ -148,4 +148,36 @@ test.describe("หลังบ้านกับ Supabase จริง (ต้�
     const left = await admin().from("titles").select("id").eq("slug", slug);
     expect(left.data).toHaveLength(0);
   });
+
+  test("ตัวเขียนตอน: บันทึกฉบับร่างอัตโนมัติ → กู้คืนได้ / ทิ้งได้", async ({ page }) => {
+    await makeAdmin(user.id);
+    const title = await admin()
+      .from("titles")
+      .insert({ slug, name: "เรื่องทดสอบฉบับร่าง", type: "novel", published: false })
+      .select("id")
+      .single();
+    expect(title.error).toBeNull();
+    const url = `/admin/titles/${title.data!.id}/episodes/new`;
+    const body = page.getByLabel("เนื้อหา (ภาษาไทย ต้นฉบับ)");
+
+    await page.goto(callbackUrl(user, url));
+    await expect(page.getByText("พบฉบับร่าง")).toHaveCount(0);
+    await body.fill("ข้อความที่ยังเขียนไม่เสร็จ");
+    await page.waitForTimeout(1500); // รอ debounce 1 วินาที
+
+    // เปิดใหม่ (เหมือนแท็บปิดไปก่อนกดบันทึก) → เจอฉบับร่าง → กู้คืน
+    await page.goto(url);
+    await expect(page.getByText("พบฉบับร่างที่ยังไม่ได้บันทึก")).toBeVisible();
+    await page.getByRole("button", { name: "กู้คืน" }).click();
+    await expect(body).toHaveValue("ข้อความที่ยังเขียนไม่เสร็จ");
+    await expect(page.getByText("พบฉบับร่าง")).toHaveCount(0);
+
+    // เปิดใหม่อีกครั้ง → ทิ้ง → ไม่เจออีก
+    await page.goto(url);
+    await page.getByRole("button", { name: "ทิ้ง" }).click();
+    await expect(page.getByText("พบฉบับร่าง")).toHaveCount(0);
+    await page.goto(url);
+    await expect(page.getByText("พบฉบับร่าง")).toHaveCount(0);
+    await expect(body).toHaveValue("");
+  });
 });
