@@ -40,6 +40,7 @@ test.describe("จัดหน้าแรก (ต้องมี SUPABASE_SERVI
     const rows = await admin().from("home_sections").select("id");
     const mine = (rows.data ?? []).map((r) => r.id).filter((id) => !sectionsBefore.has(id));
     if (mine.length) await admin().from("home_sections").delete().in("id", mine);
+    await admin().from("collections").delete().eq("slug", `col-${stamp}`); // รายการในชุดถูกลบตาม cascade
     await deleteTitleBySlug(slug); // ปักโปรโมทถูกลบตามเรื่องด้วย cascade
     await revalidateCatalog(); // ลบตรงด้วย service role ไม่ผ่านหลังบ้าน → ล้างแคชเอง
     await deleteUser(user.id);
@@ -122,7 +123,7 @@ test.describe("จัดหน้าแรก (ต้องมี SUPABASE_SERVI
     await revalidateCatalog(); // เขียนตรงด้วย service role → ล้างแคชให้หน้าเว็บเห็นเรื่องใหม่
 
     await page.goto(callbackUrl(user, "/admin/home/promotions"));
-    await page.getByLabel("slug ของเรื่อง").fill(slug);
+    await page.getByLabel("เรื่อง", { exact: true }).selectOption(slug);
     await page.getByLabel("ทำอะไร").selectOption("spotlight");
     await page.getByRole("button", { name: "ปักเรื่องนี้" }).click();
     await expect(page.getByText("บันทึกแล้ว")).toBeVisible();
@@ -135,7 +136,7 @@ test.describe("จัดหน้าแรก (ต้องมี SUPABASE_SERVI
     // ยกเลิกปัก แล้วสั่งซ่อน
     await page.goto("/admin/home/promotions");
     await page.getByRole("button", { name: "ยกเลิกการปัก" }).click();
-    await page.getByLabel("slug ของเรื่อง").fill(slug);
+    await page.getByLabel("เรื่อง", { exact: true }).selectOption(slug);
     await page.getByLabel("ทำอะไร").selectOption("hidden");
     await page.getByRole("button", { name: "ปักเรื่องนี้" }).click();
     await expect(page.getByText("บันทึกแล้ว")).toBeVisible();
@@ -170,5 +171,57 @@ test.describe("จัดหน้าแรก (ต้องมี SUPABASE_SERVI
     await page.goto(callbackUrl(user, "/"));
     await page.goto("/browse/novel");
     await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+  });
+
+  test("ชุดคัดสรร: สร้างชุด → เลือกเรื่องจากรายชื่อ → เพิ่มเป็นส่วนในหน้าแรก → เห็นเรื่องในชุด", async ({ page }) => {
+    test.setTimeout(120_000);
+    const name = `เรื่องในชุด ${stamp}`;
+    const colTitle = `ชุดทดสอบ ${stamp}`;
+    const ins = await admin()
+      .from("titles")
+      .insert({ slug, name, type: "novel", published: true })
+      .select("id")
+      .single();
+    expect(ins.error).toBeNull();
+    await revalidateCatalog();
+
+    // 1) สร้างชุด
+    await page.goto(callbackUrl(user, "/admin/home/collections"));
+    await page.getByLabel("ชื่อชุด").first().fill(colTitle);
+    await page.getByLabel("slug", { exact: true }).first().fill(`col-${stamp}`);
+    await page.getByRole("button", { name: "สร้างชุด" }).click();
+    await expect(page.getByText("บันทึกแล้ว")).toBeVisible();
+
+    // 2) เลือกเรื่องจากรายชื่อ (ไม่ต้องพิมพ์ slug)
+    await page
+      .locator("li")
+      .filter({ hasText: colTitle })
+      .getByText(/แก้ไขชุดนี้/)
+      .click();
+    const picker = page.getByRole("group", { name: `เรื่องในชุด ${colTitle}` });
+    await picker.getByRole("combobox").selectOption({ label: `${name} (นิยาย)` });
+    await picker.getByRole("button", { name: "เพิ่ม", exact: true }).click();
+    await expect(picker.getByText(`1. ${name}`)).toBeVisible();
+    await page.getByRole("button", { name: "บันทึกรายการเรื่อง" }).click();
+    await expect(page.getByText("บันทึกแล้ว")).toBeVisible();
+
+    // 3) เพิ่มเป็นส่วนของหน้าแรก (เลือกชุดจากรายการ)
+    await page.goto("/admin/home");
+    await page.getByText("+ ชุดคัดสรร", { exact: true }).click();
+    const form = page.locator("details[open] form");
+    await form.getByLabel("ชุดคัดสรร", { exact: true }).selectOption({ label: colTitle });
+    await form.getByRole("button", { name: "เพิ่มส่วนนี้" }).click();
+    await expect(page.getByText("บันทึกแล้ว")).toBeVisible();
+
+    // 4) หน้าแรกแสดงชุดและเรื่องในชุด + ปุ่มลัด
+    await page.goto("/");
+    const section = page.locator(`section#zone-c-col-${stamp}`);
+    // แคชหลายชั้นถูกล้างพร้อมกัน → หน้าแรกอาจเห็นผลช้ากว่าปกติไม่กี่วินาที: โหลดซ้ำจนเห็น
+    await expect(async () => {
+      await page.goto("/");
+      await expect(section.getByRole("heading", { name: colTitle })).toBeVisible({ timeout: 3000 });
+    }).toPass({ timeout: 40_000 });
+    await expect(section.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+    await expect(page.getByRole("link", { name: `เลื่อนไปโซน${colTitle}` })).toBeVisible();
   });
 });

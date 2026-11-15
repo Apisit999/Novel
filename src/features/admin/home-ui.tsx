@@ -1,22 +1,29 @@
 import { CONTENT_TYPES } from "@/content-types/registry";
 import { KIND_LABEL, type SectionKind } from "@/features/home/sections/config";
+import { TitlePicker } from "./title-picker";
+import type { CollectionOption, TitleOption } from "./title-options";
 import { Field, inputCls } from "./ui";
 
 type Cfg = Record<string, unknown>;
 
 const text = (v: unknown, d = "") => (typeof v === "string" ? v : d);
 const numStr = (v: unknown) => (typeof v === "number" ? String(v) : "");
-const list = (v: unknown) => (Array.isArray(v) ? v.join("\n") : "");
+const slugList = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 
 /** ช่องกรอกเฉพาะชนิดของส่วน — ใช้ร่วมกันทั้งฟอร์มเพิ่มและฟอร์มแก้ไข (ชื่อช่องตรงกับ rawConfigFromForm) */
 export function SectionFields({
   kind,
   config = {},
   idPrefix,
+  titles,
+  collections,
 }: {
   kind: SectionKind;
   config?: Cfg;
   idPrefix: string;
+  titles: TitleOption[];
+  collections: CollectionOption[];
 }) {
   const id = (n: string) => `${idPrefix}-${n}`;
   const limit = (min: number, max: number, hint: string) => (
@@ -52,13 +59,13 @@ export function SectionFields({
               <option value="manual">เลือกเอง</option>
             </select>
           </Field>
-          <Field label="slug เรื่อง (เมื่อเลือกเอง)" htmlFor={id("slugs")} hint="บรรทัดละ 1 เรื่อง">
-            <textarea
-              id={id("slugs")}
+          <Field label="เรื่อง (เมื่อเลือกเอง)" htmlFor={id("slugs")} hint="เรียงตามที่จะแสดง">
+            <TitlePicker
               name="slugs"
-              rows={3}
-              defaultValue={list(config.slugs)}
-              className={inputCls}
+              label="เรื่องเด่น"
+              options={titles}
+              initial={slugList(config.slugs)}
+              max={6}
             />
           </Field>
           {limit(1, 6, "1–6 เรื่อง")}
@@ -78,17 +85,13 @@ export function SectionFields({
               <option value="manual">เลือกเอง</option>
             </select>
           </Field>
-          <Field
-            label="slug เรื่อง (เมื่อเลือกเอง)"
-            htmlFor={id("slugs")}
-            hint="บรรทัดละ 1 เรื่อง เรียงตามอันดับ"
-          >
-            <textarea
-              id={id("slugs")}
+          <Field label="เรื่อง (เมื่อเลือกเอง)" htmlFor={id("slugs")} hint="เรียงตามอันดับ">
+            <TitlePicker
               name="slugs"
-              rows={3}
-              defaultValue={list(config.slugs)}
-              className={inputCls}
+              label="10 อันดับ"
+              options={titles}
+              initial={slugList(config.slugs)}
+              max={10}
             />
           </Field>
         </>
@@ -120,13 +123,24 @@ export function SectionFields({
     case "collection":
       return (
         <>
-          <Field label="slug ของชุดคัดสรร" htmlFor={id("cs")} hint="สร้างชุดได้ที่หน้า “ชุดคัดสรร”">
-            <input
+          <Field
+            label="ชุดคัดสรร"
+            htmlFor={id("cs")}
+            hint={collections.length === 0 ? "ยังไม่มีชุด — สร้างได้ที่หน้า “ชุดคัดสรร”" : undefined}
+          >
+            <select
               id={id("cs")}
               name="collectionSlug"
               defaultValue={text(config.slug)}
               className={inputCls}
-            />
+            >
+              <option value="">— เลือกชุด —</option>
+              {collections.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
           </Field>
           {limit(3, 12, "3–12 เรื่อง")}
         </>

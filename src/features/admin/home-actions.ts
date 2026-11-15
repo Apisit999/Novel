@@ -85,9 +85,19 @@ export async function addSection(formData: FormData) {
     .order("position", { ascending: false })
     .limit(1);
   const position = (last.data?.[0]?.position ?? 0) + 10;
+  // ชุดคัดสรรที่ไม่ตั้งหัวข้อ → ใช้ชื่อชุดเป็นหัวข้อ (ปุ่มลัดบนหน้าแรกจะแสดงชื่อที่อ่านออก ไม่ใช่ slug)
+  let title = formString(formData, "title").slice(0, 120);
+  if (kind === "collection" && !title) {
+    const col = await db
+      .from("collections")
+      .select("title")
+      .eq("slug", (parsed.config as { slug: string }).slug)
+      .maybeSingle();
+    title = col.data?.title ?? "";
+  }
   const { error } = await db.from("home_sections").insert({
     kind,
-    title: formString(formData, "title").slice(0, 120),
+    title,
     config: parsed.config as never,
     position,
   });

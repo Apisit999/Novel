@@ -9,6 +9,7 @@ import {
 } from "@/features/admin/home-actions";
 import { KIND_LABEL, SectionFields } from "@/features/admin/home-ui";
 import { requireAdmin } from "@/features/admin/guard";
+import { listCollectionOptions, listTitleOptions } from "@/features/admin/title-options";
 import { isoToThaiLocal } from "@/features/admin/schemas";
 import { Badge, dangerBtn, Field, ghostBtn, inputCls, primaryBtn } from "@/features/admin/ui";
 import { SECTION_KINDS, type SectionKind } from "@/features/home/sections/config";
@@ -31,6 +32,10 @@ export default async function AdminHomeLayout({ searchParams }: PageProps<"/admi
     .order("created_at", { ascending: true });
   if (error) throw new Error(`อ่านส่วนของหน้าแรกไม่สำเร็จ: ${error.message}`);
   const sections = data ?? [];
+  const [titles, collections] = await Promise.all([
+    listTitleOptions(db),
+    listCollectionOptions(db),
+  ]);
 
   return (
     <section className="flex flex-col gap-8">
@@ -43,7 +48,7 @@ export default async function AdminHomeLayout({ searchParams }: PageProps<"/admi
           <Link href="/admin/home/collections" className={ghostBtn}>
             ชุดคัดสรร
           </Link>
-          <Link href="/" className={ghostBtn}>
+          <Link href="/" target="_blank" className={ghostBtn}>
             ดูหน้าแรก
           </Link>
         </div>
@@ -130,6 +135,8 @@ export default async function AdminHomeLayout({ searchParams }: PageProps<"/admi
                       kind={kind}
                       config={(s.config ?? {}) as Record<string, unknown>}
                       idPrefix={`f-${s.id}`}
+                      titles={titles}
+                      collections={collections}
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field
@@ -186,7 +193,12 @@ export default async function AdminHomeLayout({ searchParams }: PageProps<"/admi
               <Field label="หัวข้อ (ว่าง = ใช้ชื่อเริ่มต้น)" htmlFor={`add-${kind}-title`}>
                 <input id={`add-${kind}-title`} name="title" maxLength={120} className={inputCls} />
               </Field>
-              <SectionFields kind={kind} idPrefix={`add-${kind}`} />
+              <SectionFields
+                kind={kind}
+                idPrefix={`add-${kind}`}
+                titles={titles}
+                collections={collections}
+              />
               <button type="submit" className={`${primaryBtn} self-start`}>
                 เพิ่มส่วนนี้
               </button>

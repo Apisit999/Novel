@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { addPin, deletePin } from "@/features/admin/home-actions";
 import { requireAdmin } from "@/features/admin/guard";
+import { listTitleOptions } from "@/features/admin/title-options";
 import { isoToThaiLocal } from "@/features/admin/schemas";
 import { Badge, dangerBtn, Field, ghostBtn, inputCls, primaryBtn } from "@/features/admin/ui";
 
@@ -32,6 +33,7 @@ export default async function PromotionsPage({
     .order("created_at", { ascending: false });
   if (error) throw new Error(`อ่านรายการปักไม่สำเร็จ: ${error.message}`);
   const pins = data ?? [];
+  const titles = await listTitleOptions(db);
 
   return (
     <section className="flex flex-col gap-8">
@@ -62,8 +64,18 @@ export default async function PromotionsPage({
         className="border-border flex max-w-xl flex-col gap-4 rounded-2xl border p-5"
       >
         <h2 className="text-xl font-bold">ปักเรื่องใหม่</h2>
-        <Field label="slug ของเรื่อง" htmlFor="pin-slug" hint="ดู slug ได้ในหน้าแก้ไขเรื่อง">
-          <input id="pin-slug" name="slug" required autoCapitalize="none" className={inputCls} />
+        <Field label="เรื่อง" htmlFor="pin-slug">
+          <select id="pin-slug" name="slug" required defaultValue="" className={inputCls}>
+            <option value="" disabled>
+              — เลือกเรื่อง —
+            </option>
+            {titles.map((t) => (
+              <option key={t.slug} value={t.slug}>
+                {t.name}
+                {t.published ? "" : " (ยังไม่เผยแพร่)"}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="ทำอะไร" htmlFor="pin-placement">
           <select id="pin-placement" name="placement" className={inputCls}>

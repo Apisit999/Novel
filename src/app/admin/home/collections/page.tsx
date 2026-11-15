@@ -5,6 +5,8 @@ import {
   saveCollectionItems,
 } from "@/features/admin/home-actions";
 import { requireAdmin } from "@/features/admin/guard";
+import { listTitleOptions } from "@/features/admin/title-options";
+import { TitlePicker } from "@/features/admin/title-picker";
 import { dangerBtn, Field, ghostBtn, inputCls, primaryBtn } from "@/features/admin/ui";
 
 export default async function CollectionsPage({
@@ -17,6 +19,7 @@ export default async function CollectionsPage({
     .order("created_at", { ascending: false });
   if (error) throw new Error(`อ่านชุดคัดสรรไม่สำเร็จ: ${error.message}`);
   const collections = data ?? [];
+  const titles = await listTitleOptions(db);
 
   return (
     <section className="flex flex-col gap-8">
@@ -85,14 +88,14 @@ export default async function CollectionsPage({
                   <Field
                     label="เรื่องในชุด"
                     htmlFor={`items-${c.id}`}
-                    hint="slug บรรทัดละ 1 เรื่อง เรียงตามที่จะแสดง"
+                    hint="เรียงตามที่จะแสดง (สูงสุด 60 เรื่อง)"
                   >
-                    <textarea
-                      id={`items-${c.id}`}
+                    <TitlePicker
                       name="slugs"
-                      rows={6}
-                      defaultValue={slugs.join("\n")}
-                      className={inputCls}
+                      label={`เรื่องในชุด ${c.title}`}
+                      options={titles}
+                      initial={slugs as string[]}
+                      max={60}
                     />
                   </Field>
                   <button type="submit" className={`${primaryBtn} self-start`}>
