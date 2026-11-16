@@ -9,7 +9,12 @@ import { startTransition, type FormEvent } from "react";
 export function submitKeepingValues(action: (formData: FormData) => void) {
   return (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    // ใส่ปุ่มที่กดเข้าไปด้วย (เช่น "บันทึกแล้วไปตอนถัดไป") — new FormData(form) เฉย ๆ ไม่รวมค่าของปุ่ม
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const formData =
+      submitter instanceof HTMLElement
+        ? new FormData(event.currentTarget, submitter as HTMLButtonElement)
+        : new FormData(event.currentTarget);
     startTransition(() => action(formData));
   };
 }

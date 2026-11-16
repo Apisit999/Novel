@@ -46,6 +46,9 @@ export const titleSchema = z.object({
     .pipe(z.array(z.string().max(40))),
 });
 
+/** เบราว์เซอร์ส่งการขึ้นบรรทัดใหม่ของช่องข้อความมาเป็น CRLF → เก็บเป็น LF (ตัวแสดงผลแยกย่อหน้าด้วย LF) */
+const lf = (s: string) => s.replace(/\r\n?/g, "\n");
+
 export const episodeSchema = z
   .object({
     number: z.coerce.number().int("เลขตอนต้องเป็นจำนวนเต็ม").positive("เลขตอนต้องมากกว่า 0"),
@@ -54,10 +57,10 @@ export const episodeSchema = z
     status: z.enum(["draft", "scheduled", "published"]),
     /** "YYYY-MM-DDTHH:mm" เวลาไทย (จาก input datetime-local) */
     publishAt: z.string().optional(),
-    body: z.string().max(500_000),
-    en: z.string().max(500_000),
+    body: z.string().max(500_000).transform(lf),
+    en: z.string().max(500_000).transform(lf),
     enMachine: z.boolean(),
-    zh: z.string().max(500_000),
+    zh: z.string().max(500_000).transform(lf),
     zhMachine: z.boolean(),
   })
   .refine((v) => v.status !== "scheduled" || !!v.publishAt, {

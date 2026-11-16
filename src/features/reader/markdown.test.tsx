@@ -8,6 +8,12 @@ describe("Markdown", () => {
   it("แบ่งย่อหน้าด้วยบรรทัดว่าง", () => {
     expect(html("หนึ่ง\n\nสอง")).toBe("<p>หนึ่ง</p><p>สอง</p>");
   });
+  it("ขึ้นบรรทัดแบบ Windows (CRLF) ที่เบราว์เซอร์ส่งมากับฟอร์ม แบ่งย่อหน้า/หัวข้อได้เหมือน LF", () => {
+    expect(html("หนึ่ง\r\n\r\nสอง")).toBe("<p>หนึ่ง</p><p>สอง</p>");
+    expect(html("# ตอนที่ 1\r\n\r\nเนื้อหา")).toContain("<h2");
+    expect(html("ก\r\nข")).toBe("<p>ก<br/>ข</p>");
+    expect(html("ก\r\n\r\n---\r\n\r\nข")).toContain("<hr");
+  });
   it("บรรทัดเดี่ยวในย่อหน้าเป็น <br>", () => {
     expect(html("ก\nข")).toBe("<p>ก<br/>ข</p>");
   });

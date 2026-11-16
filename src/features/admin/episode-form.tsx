@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useDeferredValue, useEffect, useRef, useState } from "react";
+import { normalizeText } from "@/features/import/split-chapters";
 import { Markdown } from "@/features/reader/markdown";
 import { saveEpisode, type FormState } from "./actions";
+import { countWords } from "./schemas";
 import { submitKeepingValues } from "./submit";
 import { Field, inputCls, primaryBtn } from "./ui";
 
@@ -43,6 +45,9 @@ function MarkdownBox({
   required?: boolean;
 }) {
   const [preview, setPreview] = useState(false);
+  // นับคำ (ตัดคำภาษาไทยด้วย Intl.Segmenter) เลื่อนไปทำตอนว่าง ไม่หน่วงตอนพิมพ์ข้อความยาว ๆ
+  const deferred = useDeferredValue(text);
+  const words = deferred.trim() ? countWords(deferred) : 0;
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3">
@@ -57,6 +62,20 @@ function MarkdownBox({
         >
           {preview ? "กลับไปแก้ไข" : "ดูตัวอย่าง"}
         </button>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setText(normalizeText(text, "auto"))}
+          disabled={!text.trim() || preview}
+          title="ตัดช่องว่างเกิน และคั่นย่อหน้าด้วยบรรทัดว่างให้ข้อความที่วางมา (หนึ่งบรรทัด = หนึ่งย่อหน้า)"
+          className="border-border bg-surface min-h-10 cursor-pointer rounded-full border px-4 text-sm font-bold disabled:opacity-40"
+        >
+          จัดย่อหน้าอัตโนมัติ
+        </button>
+        <span className="text-muted text-sm" aria-live="polite">
+          {text.length.toLocaleString("th-TH")} ตัวอักษร · {words.toLocaleString("th-TH")} คำ
+        </span>
       </div>
       {/* ซ่อนช่องเขียนตอนพรีวิว (ไม่ถอดออก) เพื่อให้ค่ายังถูกส่งไปกับฟอร์ม */}
       <textarea
@@ -290,9 +309,20 @@ export function EpisodeForm({ values }: { values: EpisodeFormValues }) {
           {state.error}
         </p>
       )}
-      <button type="submit" disabled={pending} className={`${primaryBtn} self-start`}>
-        {pending ? "กำลังบันทึก…" : editing ? "บันทึกการแก้ไข" : "เพิ่มตอน"}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" disabled={pending} className={primaryBtn}>
+          {pending ? "กำลังบันทึก…" : editing ? "บันทึกการแก้ไข" : "เพิ่มตอน"}
+        </button>
+        <button
+          type="submit"
+          name="after"
+          value="next"
+          disabled={pending}
+          className="border-border bg-surface min-h-12 cursor-pointer rounded-full border-2 px-8 font-bold disabled:opacity-60"
+        >
+          บันทึกแล้วเพิ่มตอนถัดไป
+        </button>
+      </div>
     </form>
   );
 }

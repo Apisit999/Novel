@@ -27,7 +27,11 @@ const HEADINGS = {
 } as const;
 
 export function Markdown({ source }: { source: string }) {
-  const blocks = source.trim().split(/\n{2,}/);
+  // ข้อมูลเก่าที่บันทึกมาเป็น CRLF (จากฟอร์มในเบราว์เซอร์) ต้องแบ่งย่อหน้าได้เหมือน LF
+  const blocks = source
+    .replace(/\r\n?/g, "\n")
+    .trim()
+    .split(/\n{2,}/);
   return (
     <>
       {blocks.map((block, i) => {

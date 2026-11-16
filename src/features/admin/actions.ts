@@ -198,6 +198,12 @@ export async function saveEpisode(_prev: FormState, formData: FormData): Promise
   }
 
   refreshCatalog();
+  if (formData.get("after") === "next") {
+    // ลงต่อเนื่อง: ไปตอนถัดไปทันที ถือสถานะ/สิทธิ์เดิมไปด้วย (เวลาตั้งเผยแพร่ไม่ถือไป เพราะแต่ละตอนต่างเวลากัน)
+    const carry = new URLSearchParams({ saved: "1", access: v.access });
+    if (v.status !== "scheduled") carry.set("status", v.status);
+    redirect(`/admin/titles/${titleId.data}/episodes/new?${carry}`);
+  }
   redirect(`/admin/titles/${titleId.data}?saved=1`);
 }
 

@@ -57,6 +57,25 @@ describe("titleSchema", () => {
   });
 });
 
+describe("episodeSchema: ขึ้นบรรทัดใหม่", () => {
+  const ep = {
+    number: "1",
+    name: "ตอน",
+    access: "inherit",
+    status: "draft",
+    body: "ก\r\n\r\nข\rค",
+    en: "a\r\nb",
+    enMachine: false,
+    zh: "",
+    zhMachine: true,
+  };
+  it("เนื้อหา/คำแปลจากฟอร์ม (CRLF) ถูกแปลงเป็น LF ก่อนบันทึก", () => {
+    const r = episodeSchema.parse(ep);
+    expect(r.body).toBe("ก\n\nข\nค");
+    expect(r.en).toBe("a\nb");
+  });
+});
+
 describe("episodeSchema", () => {
   const base = {
     number: "3",

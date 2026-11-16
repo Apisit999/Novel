@@ -8,8 +8,16 @@ const UUID = /^[0-9a-f-]{36}$/i;
 
 export default async function NewEpisodePage({
   params,
+  searchParams,
 }: PageProps<"/admin/titles/[id]/episodes/new">) {
-  const [{ db }, { id }] = await Promise.all([requireAdmin(), params]);
+  const [{ db }, { id }, query] = await Promise.all([requireAdmin(), params, searchParams]);
+  // ค่าที่ถือมาจาก "บันทึกแล้วไปตอนถัดไป" (ตรวจค่าให้อยู่ในชุดที่อนุญาตเท่านั้น)
+  const carryStatus =
+    query.status === "published" || query.status === "draft" ? query.status : "draft";
+  const carryAccess =
+    query.access === "free" || query.access === "premium" || query.access === "inherit"
+      ? query.access
+      : "inherit";
   if (!UUID.test(id)) notFound();
 
   const { data: title } = await db
@@ -32,6 +40,11 @@ export default async function NewEpisodePage({
         <Link href={`/admin/titles/${id}`}>← {title.name}</Link>
       </p>
       <h1 className="mt-1 mb-6 text-2xl font-bold">เพิ่มตอนใหม่</h1>
+      {query.saved && (
+        <p role="status" className="border-border bg-surface mb-6 rounded-xl border p-3 font-bold">
+          บันทึกตอนก่อนหน้าแล้ว — เพิ่มตอนถัดไปได้เลย
+        </p>
+      )}
       {title.type === "manga" || title.type === "video" ? (
         <MangaEpisodeForm
           kind={title.type}
@@ -39,8 +52,8 @@ export default async function NewEpisodePage({
             titleId: id,
             number: next,
             name: `ตอนที่ ${next}`,
-            access: "inherit",
-            status: "draft",
+            access: carryAccess,
+            status: carryStatus,
             publishAt: "",
           }}
         />
@@ -50,8 +63,8 @@ export default async function NewEpisodePage({
             titleId: id,
             number: next,
             name: `ตอนที่ ${next}`,
-            access: "inherit",
-            status: "draft",
+            access: carryAccess,
+            status: carryStatus,
             publishAt: "",
             body: "",
             en: "",

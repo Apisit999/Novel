@@ -34,6 +34,17 @@ export default async function EditEpisodePage({
     .maybeSingle();
   if (!ep) notFound();
 
+  // ตอนก่อนหน้า/ถัดไป (ตามเลขตอน) ไว้เปิดแก้ต่อเนื่อง
+  const { data: siblings } = await db
+    .from("episodes")
+    .select("number")
+    .eq("title_id", id)
+    .order("number", { ascending: true });
+  const nums = (siblings ?? []).map((e) => e.number);
+  const at = nums.indexOf(ep.number);
+  const prevNo = at > 0 ? nums[at - 1] : undefined;
+  const nextNo = at >= 0 && at < nums.length - 1 ? nums[at + 1] : undefined;
+
   const common = {
     titleId: id,
     episodeId: ep.id,
@@ -105,6 +116,26 @@ export default async function EditEpisodePage({
         <h1 className="mt-1 mb-6 text-2xl font-bold">
           แก้ไขตอนที่ {ep.number}: {ep.name}
         </h1>
+        <nav aria-label="ไปตอนอื่น" className="mb-6 flex flex-wrap items-center gap-3">
+          {prevNo !== undefined && (
+            <Link href={`/admin/titles/${id}/episodes/${prevNo}`} className="text-accent font-bold">
+              ← ตอนที่ {prevNo}
+            </Link>
+          )}
+          {nextNo !== undefined && (
+            <Link href={`/admin/titles/${id}/episodes/${nextNo}`} className="text-accent font-bold">
+              ตอนที่ {nextNo} →
+            </Link>
+          )}
+          {title.type === "novel" && (
+            <Link
+              href={`/admin/titles/${id}/episodes/${ep.number}/preview`}
+              className="text-accent ml-auto font-bold"
+            >
+              ดูในรูปแบบตัวอ่านจริง →
+            </Link>
+          )}
+        </nav>
         {query.saved && (
           <p
             role="status"
