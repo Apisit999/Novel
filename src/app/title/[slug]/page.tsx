@@ -3,7 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContentType } from "@/content-types/registry";
-import { getTitle, listEpisodes, listFollowerCounts } from "@/features/catalog/catalog";
+import {
+  getTitle,
+  listEpisodeLikeCounts,
+  listEpisodes,
+  listFollowerCounts,
+} from "@/features/catalog/catalog";
 import { coverColor } from "@/features/catalog/cover";
 import { coverUrl } from "@/features/catalog/cover-url";
 import { serializeJsonLd, titleJsonLd } from "@/features/catalog/json-ld";
@@ -37,7 +42,11 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
   const title = await getTitle(slug);
   if (!title) notFound();
   const def = getContentType(title.type);
-  const [episodes, followers] = await Promise.all([listEpisodes(slug), listFollowerCounts()]);
+  const [episodes, followers, likes] = await Promise.all([
+    listEpisodes(slug),
+    listFollowerCounts(),
+    listEpisodeLikeCounts(slug),
+  ]);
   const followerCount = followers[slug] ?? 0;
   const image = coverUrl(title.coverKey);
 
@@ -102,6 +111,11 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
               <Link href={`/read/${slug}/${e.number}`} className="text-accent">
                 {e.name}
               </Link>
+              {likes[e.number] > 0 && (
+                <span className="text-muted ml-3 text-sm">
+                  ♥ ถูกใจ {compactCount(likes[e.number])}
+                </span>
+              )}
             </li>
           ))}
         </ol>

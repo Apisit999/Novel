@@ -136,6 +136,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      episode_likes: {
+        Row: { created_at: string; episode_id: string; user_id: string };
+        ComputedFields: never;
+        Insert: { created_at?: string; episode_id: string; user_id: string };
+        Update: { created_at?: string; episode_id?: string; user_id?: string };
+        Relationships: [
+          {
+            foreignKeyName: "episode_likes_episode_id_fkey";
+            columns: ["episode_id"];
+            isOneToOne: false;
+            referencedRelation: "episodes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       episodes: {
         Row: {
           access: Database["public"]["Enums"]["episode_access"];
@@ -670,6 +685,10 @@ export type Database = {
     };
     Functions: {
       can_access: { Args: { p_episode_id: string }; Returns: boolean };
+      episode_like_counts: {
+        Args: { p_slug: string };
+        Returns: { number: number; likes: number }[];
+      };
       episode_is_visible: { Args: { p_episode_id: string }; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       record_title_view: { Args: { p_slug: string }; Returns: undefined };

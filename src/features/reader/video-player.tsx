@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { LikeButton } from "@/features/likes/like-button";
 import { saveProgress } from "@/features/library/local-library";
 
 interface Props {
@@ -100,6 +101,10 @@ export function VideoPlayer({
           ตอนนี้ยังไม่พร้อมให้ดู — กลับมาใหม่เร็ว ๆ นี้
         </p>
       )}
+
+      <div className="mx-auto mt-6 flex max-w-[960px] justify-center">
+        <LikeButton slug={slug} number={number} />
+      </div>
 
       <nav aria-label="เปลี่ยนตอน" className="mx-auto mt-6 flex max-w-[960px] justify-between gap-3">
         {prevHref ? (

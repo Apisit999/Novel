@@ -456,6 +456,16 @@ export async function listFollowerCounts(): Promise<Record<string, number>> {
   return Object.fromEntries(rows.map((r) => [r.slug, Number(r.followers)]));
 }
 
+/** จำนวนไลก์ต่อตอนของเรื่อง (เลขตอน → จำนวน) — ตอนที่ไม่มีไลก์ไม่อยู่ในผลลัพธ์ */
+export async function listEpisodeLikeCounts(slug: string): Promise<Record<number, number>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "likes");
+
+  const rows = must(await publicDb().rpc("episode_like_counts", { p_slug: slug }), "ไลก์รายตอน");
+  return Object.fromEntries(rows.map((r) => [r.number, Number(r.likes)]));
+}
+
 export interface HomeSectionRow {
   id: string;
   kind: string;

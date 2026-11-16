@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { saveProgress } from "@/features/library/local-library";
+import { LikeButton } from "@/features/likes/like-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Markdown } from "./markdown";
 
@@ -336,7 +337,11 @@ export function NovelReader({
         <Markdown source={body.text} />
       </div>
 
-      <nav aria-label="เปลี่ยนตอน" className="mx-auto mt-10 flex max-w-[38rem] justify-between gap-3">
+      <div className="mx-auto mt-10 flex max-w-[38rem] justify-center">
+        <LikeButton slug={slug} number={number} />
+      </div>
+
+      <nav aria-label="เปลี่ยนตอน" className="mx-auto mt-6 flex max-w-[38rem] justify-between gap-3">
         {prevHref ? (
           <Link href={prevHref} className={`${btn} flex items-center no-underline`}>
             ← ก่อนหน้า

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LikeButton } from "@/features/likes/like-button";
 import { saveProgress } from "@/features/library/local-library";
 
 export interface ReaderPage {
@@ -298,7 +299,11 @@ export function MangaReader({
         </div>
       )}
 
-      <nav aria-label="เปลี่ยนตอน" className="mx-auto mt-10 flex max-w-[860px] justify-between gap-3">
+      <div className="mx-auto mt-10 flex max-w-[860px] justify-center">
+        <LikeButton slug={slug} number={number} />
+      </div>
+
+      <nav aria-label="เปลี่ยนตอน" className="mx-auto mt-6 flex max-w-[860px] justify-between gap-3">
         {prevHref ? (
           <Link href={prevHref} className={`${btn} flex items-center no-underline`}>
             ← ตอนก่อนหน้า
