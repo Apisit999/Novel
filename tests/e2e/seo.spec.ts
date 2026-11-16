@@ -64,3 +64,18 @@ test("หน้าเรื่องมีข้อมูลโครงสร�
   expect(data.name).toBe("สวนใต้แสงจันทร์");
   expect(data.url).toMatch(/\/title\/moonlit-garden$/);
 });
+
+test("หน้าที่ไม่มีอยู่ (เรื่อง/ผู้สร้าง/ตอน) มี noindex แม้รหัสตอบกลับเป็น 200 (กัน soft 404 ติดดัชนี)", async ({
+  request,
+}) => {
+  for (const path of [
+    "/title/no-such-title-xyz",
+    "/author/no-such-author-xyz",
+    "/read/no-such-title-xyz/1",
+  ]) {
+    const res = await request.get(path);
+    const html = await res.text();
+    expect(html, path).toContain("ไม่พบหน้าที่ต้องการ");
+    expect(html, path).toMatch(/<meta name="robots" content="noindex"/);
+  }
+});
