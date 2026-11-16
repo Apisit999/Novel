@@ -7,7 +7,8 @@ import { MangaEpisodeForm } from "@/features/admin/manga-episode-form";
 import { PagesManager } from "@/features/admin/pages-manager";
 import { isoToThaiLocal } from "@/features/admin/schemas";
 import { dangerBtn } from "@/features/admin/ui";
-import { signedReadUrls } from "@/server/storage";
+import { VideoManager } from "@/features/admin/video-manager";
+import { signedReadUrls, VIDEO_BUCKET } from "@/server/storage";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -24,7 +25,7 @@ export default async function EditEpisodePage({
     .select("id, name, type")
     .eq("id", id)
     .maybeSingle();
-  if (!title || (title.type !== "novel" && title.type !== "manga")) notFound();
+  if (!title) notFound();
   const { data: ep } = await db
     .from("episodes")
     .select("id, number, name, access, status, publish_at")
@@ -45,7 +46,17 @@ export default async function EditEpisodePage({
 
   let form: React.ReactNode;
   let extra: React.ReactNode = null;
-  if (title.type === "manga") {
+  if (title.type === "video") {
+    const asset = await db
+      .from("video_assets")
+      .select("stream_uid")
+      .eq("episode_id", ep.id)
+      .maybeSingle();
+    const key = asset.data?.stream_uid;
+    const playUrl = key ? (await signedReadUrls(db, [key], VIDEO_BUCKET)).get(key) : undefined;
+    form = <MangaEpisodeForm values={common} kind="video" />;
+    extra = <VideoManager episodeId={ep.id} playUrl={playUrl} />;
+  } else if (title.type === "manga") {
     const pages = await db
       .from("manga_pages")
       .select("page_no, image_key")
@@ -110,7 +121,13 @@ export default async function EditEpisodePage({
       <details className="border-border rounded-2xl border p-5">
         <summary className="cursor-pointer font-bold">ลบตอนนี้</summary>
         <p className="text-muted mt-3">
-          ลบ{title.type === "manga" ? "รูปทุกหน้า" : "เนื้อหาและคำแปล"}ของตอนนี้ถาวร กู้คืนไม่ได้
+          ลบ
+          {title.type === "manga"
+            ? "รูปทุกหน้า"
+            : title.type === "video"
+              ? "ไฟล์วิดีโอ"
+              : "เนื้อหาและคำแปล"}
+          ของตอนนี้ถาวร กู้คืนไม่ได้
         </p>
         <form action={deleteEpisode} className="mt-4">
           <input type="hidden" name="titleId" value={id} />

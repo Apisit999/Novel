@@ -6,7 +6,7 @@ import { publicDb } from "@/server/db";
 import { activePins, type Pin } from "@/features/home/pins";
 import { latestSlugs, pickFeatured, pickFeaturedList, resolveSlugs } from "./discovery";
 import { bangkokDayAgo, trendingSlugs } from "./ranking";
-import { signedReadUrls } from "@/server/storage";
+import { signedReadUrls, VIDEO_BUCKET } from "@/server/storage";
 import { searchIn } from "./search";
 
 export type TitleType = "novel" | "manga" | "video";
@@ -323,6 +323,51 @@ export async function getMangaEpisode(
     return url ? [{ pageNo: p.page_no, url, width: p.width, height: p.height }] : [];
   });
   return { number: ep.number, name: ep.name, access: ep.access, pages };
+}
+
+export interface VideoEpisode extends EpisodeSummary {
+  /** ลิงก์ไฟล์วิดีโอที่หมดอายุ — undefined = ยังไม่มีไฟล์/ไม่มีสิทธิ์ */
+  url?: string;
+  durationSec: number | null;
+}
+
+/**
+ * ตอนวิดีโอพร้อมลิงก์ไฟล์ — ไม่แคช (ขึ้นกับสิทธิ์ผู้ดูและลิงก์หมดอายุ) เหมือนมังงะ
+ * ฐานข้อมูลคืนแถวและออกลิงก์ให้เฉพาะเมื่อมีสิทธิ์ตาม can_access (RLS ทั้งตารางและ Storage)
+ */
+export async function getVideoEpisode(
+  slug: string,
+  number: number,
+): Promise<VideoEpisode | undefined> {
+  const db = publicDb();
+  const epRes = await db
+    .from("episodes")
+    .select("id, number, name, access, titles!inner(slug)")
+    .eq("titles.slug", slug)
+    .eq("number", number)
+    .maybeSingle();
+  if (epRes.error) throw new Error(`อ่านตอนจากฐานข้อมูลไม่สำเร็จ: ${epRes.error.message}`);
+  const ep = epRes.data;
+  if (!ep) return undefined;
+
+  const assetRes = await db
+    .from("video_assets")
+    .select("stream_uid, duration_sec, ready")
+    .eq("episode_id", ep.id)
+    .maybeSingle();
+  if (assetRes.error) throw new Error(`อ่านวิดีโอไม่สำเร็จ: ${assetRes.error.message}`);
+  const asset = assetRes.data;
+  let url: string | undefined;
+  if (asset?.ready) {
+    url = (await signedReadUrls(db, [asset.stream_uid], VIDEO_BUCKET)).get(asset.stream_uid);
+  }
+  return {
+    number: ep.number,
+    name: ep.name,
+    access: ep.access,
+    url,
+    durationSec: asset?.duration_sec ?? null,
+  };
 }
 
 // ---------------------------------------------------------------- หน้าแรกอัตโนมัติ

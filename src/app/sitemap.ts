@@ -16,8 +16,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...entries.flatMap(({ title, episodes }) => [
       { url: `${base}/title/${title.slug}`, changeFrequency: "weekly" as const, priority: 0.7 },
-      // ตอนอ่านของนิยายและมังงะ (วิดีโอมาในเฟส 5)
-      ...(title.type === "novel" || title.type === "manga"
+      // ตอนอ่าน/ดู (นิยาย มังงะ วิดีโอ)
+      ...(title.type === "novel" || title.type === "manga" || title.type === "video"
         ? episodes.map((e) => ({
             url: `${base}/read/${title.slug}/${e.number}`,
             changeFrequency: "monthly" as const,

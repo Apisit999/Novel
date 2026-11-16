@@ -7,10 +7,12 @@ import {
   getMangaEpisode,
   getNovelEpisode,
   getTitle,
+  getVideoEpisode,
   listEpisodes,
   recordTitleView,
 } from "@/features/catalog/catalog";
 import { MangaReader } from "@/features/reader/manga-reader";
+import { VideoPlayer } from "@/features/reader/video-player";
 import { NovelReader, type ReaderBody, type ReaderLang } from "@/features/reader/novel-reader";
 import { isPaywallEnabled } from "@/features/access/paywall";
 
@@ -37,10 +39,7 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
   const { slug, number } = await params;
   const n = Number(number);
   const title = await getTitle(slug);
-  // ตอนนี้ตัวอ่านรองรับนิยายและมังงะ (วิดีโอมาในเฟส 5)
-  if (!title || (title.type !== "novel" && title.type !== "manga") || !Number.isInteger(n)) {
-    notFound();
-  }
+  if (!title || !Number.isInteger(n)) notFound();
 
   const episodes = await listEpisodes(slug);
   const meta = episodes.find((e) => e.number === n);
@@ -71,6 +70,23 @@ export default async function ReadPage({ params }: PageProps<"/read/[slug]/[numb
 
   const prev = episodes.find((e) => e.number === n - 1);
   const next = episodes.find((e) => e.number === n + 1);
+
+  if (title.type === "video") {
+    const video = await getVideoEpisode(slug, n);
+    if (!video) notFound();
+    return (
+      <VideoPlayer
+        slug={slug}
+        number={n}
+        titleName={title.name}
+        titleHref={`/title/${slug}`}
+        episodeName={meta.name}
+        url={video.url}
+        prevHref={prev && `/read/${slug}/${prev.number}`}
+        nextHref={next && `/read/${slug}/${next.number}`}
+      />
+    );
+  }
 
   if (title.type === "manga") {
     const manga = await getMangaEpisode(slug, n);

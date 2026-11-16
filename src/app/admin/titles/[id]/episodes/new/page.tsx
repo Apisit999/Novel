@@ -17,8 +17,7 @@ export default async function NewEpisodePage({
     .select("id, name, type")
     .eq("id", id)
     .maybeSingle();
-  // ลงตอนได้เฉพาะนิยายและมังงะ (วิดีโอมาในเฟส 5)
-  if (!title || (title.type !== "novel" && title.type !== "manga")) notFound();
+  if (!title) notFound();
   const { data: last } = await db
     .from("episodes")
     .select("number")
@@ -33,8 +32,9 @@ export default async function NewEpisodePage({
         <Link href={`/admin/titles/${id}`}>← {title.name}</Link>
       </p>
       <h1 className="mt-1 mb-6 text-2xl font-bold">เพิ่มตอนใหม่</h1>
-      {title.type === "manga" ? (
+      {title.type === "manga" || title.type === "video" ? (
         <MangaEpisodeForm
+          kind={title.type}
           values={{
             titleId: id,
             number: next,

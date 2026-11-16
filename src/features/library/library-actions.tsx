@@ -23,7 +23,15 @@ export function FavoriteButton({ slug }: { slug: string }) {
 }
 
 /** ปุ่มเริ่มอ่าน / อ่านต่อ — ขึ้นอยู่กับว่าเคยอ่านเรื่องนี้ค้างไว้ไหม */
-export function ReadButton({ slug, firstNumber }: { slug: string; firstNumber: number }) {
+export function ReadButton({
+  slug,
+  firstNumber,
+  verb = "อ่าน",
+}: {
+  slug: string;
+  firstNumber: number;
+  verb?: string;
+}) {
   const { progress } = useLibrary();
   const saved = progress[slug];
   return saved ? (
@@ -31,14 +39,14 @@ export function ReadButton({ slug, firstNumber }: { slug: string; firstNumber: n
       href={`/read/${slug}/${saved.number}`}
       className={`${pill} bg-accent text-accent-foreground`}
     >
-      อ่านต่อ ตอนที่ {saved.number}
+      {verb}ต่อ ตอนที่ {saved.number}
     </Link>
   ) : (
     <Link
       href={`/read/${slug}/${firstNumber}`}
       className={`${pill} bg-accent text-accent-foreground`}
     >
-      เริ่มอ่าน ตอนที่ {firstNumber}
+      เริ่ม{verb} ตอนที่ {firstNumber}
     </Link>
   );
 }

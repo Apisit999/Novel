@@ -19,7 +19,13 @@ export interface MangaEpisodeValues {
 
 const initial: FormState = {};
 
-export function MangaEpisodeForm({ values }: { values: MangaEpisodeValues }) {
+export function MangaEpisodeForm({
+  values,
+  kind = "manga",
+}: {
+  values: MangaEpisodeValues;
+  kind?: "manga" | "video";
+}) {
   const [state, action, pending] = useActionState(saveMangaEpisode, initial);
   const [status, setStatus] = useState(values.status);
   const editing = Boolean(values.episodeId);
@@ -89,7 +95,13 @@ export function MangaEpisodeForm({ values }: { values: MangaEpisodeValues }) {
         </p>
       )}
       <button type="submit" disabled={pending} className={`${primaryBtn} self-start`}>
-        {pending ? "กำลังบันทึก…" : editing ? "บันทึกการแก้ไข" : "สร้างตอน แล้วไปอัปโหลดหน้า"}
+        {pending
+          ? "กำลังบันทึก…"
+          : editing
+            ? "บันทึกการแก้ไข"
+            : kind === "video"
+              ? "สร้างตอน แล้วไปอัปโหลดวิดีโอ"
+              : "สร้างตอน แล้วไปอัปโหลดหน้า"}
       </button>
     </form>
   );

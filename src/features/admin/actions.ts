@@ -3,7 +3,7 @@
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { removeObjects } from "@/server/storage";
+import { removeObjects, VIDEO_BUCKET } from "@/server/storage";
 import { requireAdmin } from "./guard";
 import { countWords, episodeSchema, thaiLocalToIso, titleSchema } from "./schemas";
 
@@ -107,12 +107,20 @@ export async function deleteTitle(formData: FormData) {
   const pages = epIds.length
     ? await db.from("manga_pages").select("image_key").in("episode_id", epIds)
     : { data: [] };
+  const videos = epIds.length
+    ? await db.from("video_assets").select("stream_uid").in("episode_id", epIds)
+    : { data: [] };
   // ลบแล้ว FK cascade ลบตอน เนื้อหา คำแปล ความคืบหน้า และรายการโปรดที่อ้างเรื่องนี้ทั้งหมด
   const { error } = await db.from("titles").delete().eq("id", id.data);
   if (error) redirect(`/admin/titles/${id.data}?error=delete`);
   await removeObjects(
     db,
     (pages.data ?? []).map((p) => p.image_key),
+  );
+  await removeObjects(
+    db,
+    (videos.data ?? []).map((v) => v.stream_uid),
+    VIDEO_BUCKET,
   );
   refreshCatalog();
   redirect("/admin?deleted=1");
@@ -197,8 +205,14 @@ export async function deleteEpisode(formData: FormData) {
   const id = uuid.safeParse(formData.get("id"));
   if (!id.success || !titleId.success) redirect("/admin");
   const pages = await db.from("manga_pages").select("image_key").eq("episode_id", id.data);
+  const video = await db.from("video_assets").select("stream_uid").eq("episode_id", id.data);
   const { error } = await db.from("episodes").delete().eq("id", id.data);
   if (!error) {
+    await removeObjects(
+      db,
+      (video.data ?? []).map((v) => v.stream_uid),
+      VIDEO_BUCKET,
+    );
     await removeObjects(
       db,
       (pages.data ?? []).map((p) => p.image_key),

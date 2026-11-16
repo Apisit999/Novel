@@ -61,7 +61,8 @@ export async function saveMangaEpisode(_prev: FormState, formData: FormData): Pr
   const v = parsed.data;
 
   const title = await db.from("titles").select("type").eq("id", titleId.data).maybeSingle();
-  if (title.data?.type !== "manga") return { error: "เรื่องนี้ไม่ใช่มังงะ" };
+  if (title.data?.type !== "manga" && title.data?.type !== "video")
+    return { error: "เรื่องนี้ต้องเป็นมังงะหรือวิดีโอ" };
 
   const publishAt = v.status === "scheduled" ? thaiLocalToIso(v.publishAt) : null;
   if (v.status === "scheduled" && !publishAt) return { error: "วันและเวลาเผยแพร่ไม่ถูกต้อง" };
