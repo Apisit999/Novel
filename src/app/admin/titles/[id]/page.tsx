@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteTitle, moveEpisode } from "@/features/admin/actions";
+import { deleteTitle } from "@/features/admin/actions";
+import { EpisodeList } from "@/features/admin/episode-list";
 import { requireAdmin } from "@/features/admin/guard";
 import { isoToThaiLocal } from "@/features/admin/schemas";
 import { CoverUploader } from "@/features/admin/cover-uploader";
 import { TitleForm } from "@/features/admin/title-form";
-import { Badge, dangerBtn, ghostBtn } from "@/features/admin/ui";
+import { dangerBtn, ghostBtn } from "@/features/admin/ui";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -89,50 +90,17 @@ export default async function EditTitlePage({
         {!episodes?.length ? (
           <p className="text-muted">ยังไม่มีตอน — กด “+ เพิ่มตอน” เพื่อลงตอนแรก</p>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {episodes.map((e, idx) => (
-              <li
-                key={e.id}
-                className="border-border bg-surface flex flex-wrap items-center gap-3 rounded-2xl border p-4"
-              >
-                <Link
-                  href={`/admin/titles/${id}/episodes/${e.number}`}
-                  className="text-foreground min-w-0 flex-1 font-bold no-underline"
-                >
-                  {e.number}. {e.name}
-                </Link>
-                <div className="flex gap-2">
-                  {(["up", "down"] as const).map((dir) => {
-                    const disabled = dir === "up" ? idx === 0 : idx === episodes.length - 1;
-                    return (
-                      <form key={dir} action={moveEpisode}>
-                        <input type="hidden" name="titleId" value={id} />
-                        <input type="hidden" name="id" value={e.id} />
-                        <input type="hidden" name="dir" value={dir} />
-                        <button
-                          type="submit"
-                          disabled={disabled}
-                          aria-label={`เลื่อนตอน ${e.number} ${dir === "up" ? "ขึ้น" : "ลง"}`}
-                          className="border-border bg-surface min-h-10 min-w-10 cursor-pointer rounded-full border font-bold disabled:cursor-default disabled:opacity-30"
-                        >
-                          {dir === "up" ? "↑" : "↓"}
-                        </button>
-                      </form>
-                    );
-                  })}
-                </div>
-                <Badge kind={e.status} />
-                {e.status === "scheduled" && (
-                  <span className="text-muted text-sm">
-                    {isoToThaiLocal(e.publish_at).replace("T", " ")} น.
-                  </span>
-                )}
-                {e.access !== "inherit" && (
-                  <Badge>{e.access === "premium" ? "Premium" : "ฟรี"}</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
+          <EpisodeList
+            titleId={id}
+            episodes={episodes.map((e) => ({
+              id: e.id,
+              number: e.number,
+              name: e.name,
+              status: e.status,
+              access: e.access,
+              publishAt: isoToThaiLocal(e.publish_at).replace("T", " "),
+            }))}
+          />
         )}
       </div>
 
