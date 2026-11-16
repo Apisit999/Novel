@@ -29,6 +29,9 @@ const LANG_LABEL: Record<ReaderLang, string> = { th: "ไทย (ต้นฉบ
 const MIN_SIZE = 1;
 const MAX_SIZE = 2;
 const LEADINGS = [1.7, 2, 2.3] as const;
+/** ความเร็วเลื่อนอัตโนมัติ (พิกเซลต่อวินาที): ช้า / กลาง / เร็ว */
+const SCROLL_SPEEDS = [25, 45, 80] as const;
+const SCROLL_LABEL = ["ช้า", "กลาง", "เร็ว"] as const;
 
 function setSize(delta: number) {
   const root = document.documentElement;
@@ -63,13 +66,58 @@ export function NovelReader({
   const [lang, setLang] = useState<ReaderLang>("th");
   const [progress, setProgress] = useState(0);
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [leading, setLeading] = useState<number>(2);
+  const [autoSpeed, setAutoSpeed] = useState<number | null>(null); // index ใน SCROLL_SPEEDS, null = ปิด
   const lastY = useRef(0);
 
   useEffect(() => {
     const v = Number(localStorage.getItem("leading"));
     if ((LEADINGS as readonly number[]).includes(v)) setLeading(v); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
+
+  // เลื่อนอัตโนมัติ: เลื่อนด้วย rAF ตามเวลาจริง (ไม่ผูกกับอัตราเฟรม) หยุดเมื่อถึงท้ายหน้า
+  // หรือผู้ใช้แตะ/เลื่อนล้อ/กดแป้นเอง
+  useEffect(() => {
+    if (autoSpeed === null) return;
+    let raf = 0;
+    let last = performance.now();
+    let carry = 0;
+    const stop = () => setAutoSpeed(null);
+    const tick = (now: number) => {
+      carry += (SCROLL_SPEEDS[autoSpeed] * (now - last)) / 1000;
+      last = now;
+      const whole = Math.floor(carry); // scrollBy รับเศษพิกเซลไม่ได้ในบางเบราว์เซอร์ → สะสมจนเต็มพิกเซลก่อน
+      if (whole > 0) {
+        carry -= whole;
+        window.scrollBy(0, whole);
+      }
+      const atEnd =
+        window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      if (atEnd) stop();
+      else raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    window.addEventListener("wheel", stop, { passive: true });
+    window.addEventListener("touchstart", stop, { passive: true });
+    window.addEventListener("keydown", stop);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("keydown", stop);
+    };
+  }, [autoSpeed]);
+
+  function resetSettings() {
+    const root = document.documentElement;
+    for (const k of ["size", "font", "leading", "theme"]) localStorage.removeItem(k);
+    root.style.removeProperty("--read-size");
+    delete root.dataset.font;
+    root.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    setLeading(2);
+    setAutoSpeed(null);
+  }
 
   function cycleLeading() {
     const i = (LEADINGS as readonly number[]).indexOf(leading);
@@ -212,22 +260,54 @@ export function NovelReader({
           </button>
           <button
             type="button"
-            onClick={toggleFont}
-            aria-label="สลับแบบตัวอักษร มีหัว/ไม่มีหัว"
-            className={btn}
+            aria-expanded={settingsOpen}
+            aria-controls="reader-settings"
+            onClick={() => setSettingsOpen((v) => !v)}
+            className={`${btn} ${settingsOpen ? "bg-accent text-accent-foreground border-accent" : ""}`}
           >
-            ฟอนต์
+            ตั้งค่า
           </button>
-          <button
-            type="button"
-            onClick={cycleLeading}
-            aria-label={`ระยะห่างบรรทัด ปัจจุบัน ${leading} กดเพื่อเปลี่ยน`}
-            className={btn}
-          >
-            ↕ {leading}
-          </button>
-          <ThemeToggle />
         </div>
+        {settingsOpen && (
+          <div
+            id="reader-settings"
+            role="group"
+            aria-label="ตั้งค่าเพิ่มเติม"
+            className="flex w-full flex-wrap gap-2 pt-1"
+          >
+            <button
+              type="button"
+              onClick={toggleFont}
+              aria-label="สลับแบบตัวอักษร มีหัว/ไม่มีหัว"
+              className={btn}
+            >
+              ฟอนต์
+            </button>
+            <button
+              type="button"
+              onClick={cycleLeading}
+              aria-label={`ระยะห่างบรรทัด ปัจจุบัน ${leading} กดเพื่อเปลี่ยน`}
+              className={btn}
+            >
+              ↕ {leading}
+            </button>
+            <ThemeToggle />
+            <button
+              type="button"
+              aria-pressed={autoSpeed !== null}
+              onClick={() =>
+                setAutoSpeed((v) => (v === null ? 0 : v + 1 < SCROLL_SPEEDS.length ? v + 1 : null))
+              }
+              aria-label="เลื่อนอัตโนมัติ กดเพื่อเปิด เปลี่ยนความเร็ว หรือปิด"
+              className={`${btn} ${autoSpeed !== null ? "bg-accent text-accent-foreground border-accent" : ""}`}
+            >
+              {autoSpeed === null ? "เลื่อนอัตโนมัติ" : `เลื่อน: ${SCROLL_LABEL[autoSpeed]}`}
+            </button>
+            <button type="button" onClick={resetSettings} className={btn}>
+              คืนค่า
+            </button>
+          </div>
+        )}
       </div>
 
       <p className="text-muted text-sm">
