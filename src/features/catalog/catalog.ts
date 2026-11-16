@@ -11,6 +11,7 @@ import { searchIn } from "./search";
 
 export type TitleType = "novel" | "manga" | "video";
 export type TitleStatus = "ongoing" | "completed" | "hiatus";
+export type AgeRating = "all" | "13" | "18";
 
 export interface TitleSummary {
   slug: string;
@@ -26,6 +27,8 @@ export interface TitleSummary {
   featured: boolean;
   /** วันอัปเดตประจำสัปดาห์ 0 = อาทิตย์ … 6 = เสาร์ (null = ไม่ระบุ) */
   updateDay: number | null;
+  /** เรตอายุ: all = ทุกวัย */
+  rating: AgeRating;
 }
 
 export interface EpisodeSummary {
@@ -51,6 +54,8 @@ export interface NovelEpisode extends EpisodeSummary {
 export interface TitleFilter {
   tag?: string;
   status?: TitleStatus;
+  /** ซ่อนเรื่องเรต 18+ */
+  hideAdult?: boolean;
 }
 
 /**
@@ -62,7 +67,7 @@ export interface TitleFilter {
  */
 
 const TITLE_COLUMNS =
-  "slug, type, name, synopsis, status, access, featured, update_day, cover_key, title_tags(tags(name))";
+  "slug, type, name, synopsis, status, access, featured, update_day, rating, cover_key, title_tags(tags(name))";
 
 interface TitleRow {
   slug: string;
@@ -73,6 +78,7 @@ interface TitleRow {
   access: Access;
   featured: boolean;
   update_day: number | null;
+  rating: AgeRating;
   cover_key: string | null;
   title_tags: { tags: { name: string } | null }[];
 }
@@ -87,6 +93,7 @@ function toSummary(row: TitleRow): TitleSummary {
     access: row.access,
     featured: row.featured,
     updateDay: row.update_day,
+    rating: row.rating,
     coverKey: row.cover_key,
     tags: row.title_tags.flatMap((t) => (t.tags ? [t.tags.name] : [])).sort(),
   };
@@ -121,7 +128,8 @@ export async function listTitles(
     (t) =>
       t.type === type &&
       (!filter.tag || t.tags.includes(filter.tag)) &&
-      (!filter.status || t.status === filter.status),
+      (!filter.status || t.status === filter.status) &&
+      (!filter.hideAdult || t.rating !== "18"),
   );
 }
 

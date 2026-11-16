@@ -13,6 +13,7 @@ const base: TitleSummary = {
   coverKey: null,
   featured: false,
   updateDay: null,
+  rating: "all",
 };
 
 describe("titleJsonLd", () => {

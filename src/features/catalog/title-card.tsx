@@ -50,6 +50,14 @@ export function TitleCard({
         ) : (
           <span />
         )}
+        {title.rating !== "all" && (
+          <span
+            className="bg-foreground text-background absolute right-3 bottom-3 rounded-full px-2.5 py-0.5 text-sm font-bold"
+            aria-label={`เรตอายุ ${title.rating} ปีขึ้นไป`}
+          >
+            {title.rating}+
+          </span>
+        )}
         {showPremium && title.access === "premium" && (
           <span className="bg-accent text-accent-foreground relative rounded-full px-3 py-0.5 text-sm font-bold">
             Premium

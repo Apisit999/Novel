@@ -68,6 +68,7 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
         <div>
           <p className="text-muted text-sm font-bold">
             {def?.label} · {STATUS_LABEL[title.status]}
+            {title.rating !== "all" && ` · เรต ${title.rating}+`}
           </p>
           <h1 className="mt-1 text-2xl font-bold">{title.name}</h1>
           {(title.updateDay !== null && title.status === "ongoing") || followerCount > 0 ? (

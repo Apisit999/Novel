@@ -42,9 +42,10 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
   const tag = typeof query.tag === "string" ? query.tag : undefined;
   const status = parseStatus(query.status);
   const sort = parseSort(query.sort);
+  const hideAdult = query.adult === "hide";
   const showPremium = await isPaywallEnabled();
   const [found, tags, views, followers] = await Promise.all([
-    listTitles(def.id, { tag, status }),
+    listTitles(def.id, { tag, status, hideAdult }),
     listTags(def.id),
     listViewCounts(),
     listFollowerCounts(),
@@ -58,14 +59,16 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
     return parts.join(" · ") || undefined;
   };
 
-  const href = (next: { tag?: string; status?: string; sort?: string }) => {
+  const href = (next: { tag?: string; status?: string; sort?: string; adult?: string }) => {
     const p = new URLSearchParams();
     const t = "tag" in next ? next.tag : tag;
     const s = "status" in next ? next.status : status;
     const o = "sort" in next ? next.sort : sort;
+    const a = "adult" in next ? next.adult : hideAdult ? "hide" : undefined;
     if (t) p.set("tag", t);
     if (s) p.set("status", s);
     if (o && o !== "latest") p.set("sort", o);
+    if (a) p.set("adult", a);
     const qs = p.toString();
     return `/browse/${def.id}${qs ? `?${qs}` : ""}`;
   };
@@ -103,6 +106,24 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
               </Link>
             </span>
           ))}
+        </p>
+        <p>
+          เนื้อหา 18+:{" "}
+          <Link
+            href={href({ adult: undefined })}
+            aria-current={!hideAdult ? "true" : undefined}
+            className={!hideAdult ? "font-bold" : "text-accent"}
+          >
+            แสดง
+          </Link>
+          {" · "}
+          <Link
+            href={href({ adult: "hide" })}
+            aria-current={hideAdult ? "true" : undefined}
+            className={hideAdult ? "font-bold" : "text-accent"}
+          >
+            ซ่อน
+          </Link>
         </p>
         <p>
           เรียงตาม:{" "}

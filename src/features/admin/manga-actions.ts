@@ -83,6 +83,7 @@ export async function saveMangaEpisode(_prev: FormState, formData: FormData): Pr
       error: result.error.code === "23505" ? "เลขตอนซ้ำกับที่มีอยู่แล้ว" : "บันทึกตอนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
     };
   }
+  updateTag("catalog"); // ให้สารบัญ/ตอนล่าสุดเห็นตอนใหม่ทันที (เหมือนตอนนิยาย)
   // ไปหน้าแก้ไขตอน เพื่ออัปโหลดรูปหน้าต่อได้ทันที
   redirect(`/admin/titles/${titleId.data}/episodes/${v.number}?saved=1`);
 }
