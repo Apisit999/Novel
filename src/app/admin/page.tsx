@@ -27,9 +27,14 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">เรื่องทั้งหมด</h1>
-        <Link href="/admin/titles/new" className={ghostBtn}>
-          + เรื่องใหม่
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <a href="/admin/export" className={ghostBtn}>
+            สำรองนิยายทั้งหมด (.zip)
+          </a>
+          <Link href="/admin/titles/new" className={ghostBtn}>
+            + เรื่องใหม่
+          </Link>
+        </div>
       </div>
       {query.deleted && (
         <p role="status" className="border-border bg-surface mt-4 rounded-xl border p-3">

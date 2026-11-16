@@ -82,6 +82,17 @@ export default async function EditTitlePage({
                 นำเข้าหลายตอน
               </Link>
             )}
+            {title.type === "novel" && (episodes?.length ?? 0) > 0 && (
+              <>
+                {/* ลิงก์ธรรมดา (ไม่ใช้ Link) เพราะเป็นไฟล์ดาวน์โหลด ไม่ใช่หน้า */}
+                <a href={`/admin/titles/${id}/export?format=md`} className={ghostBtn}>
+                  ส่งออก .md
+                </a>
+                <a href={`/admin/titles/${id}/export?format=txt`} className={ghostBtn}>
+                  ส่งออก .txt
+                </a>
+              </>
+            )}
             <Link href={`/admin/titles/${id}/episodes/new`} className={ghostBtn}>
               + เพิ่มตอน
             </Link>
