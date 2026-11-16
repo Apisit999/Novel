@@ -75,9 +75,16 @@ export default async function EditTitlePage({
       <div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-bold">ตอน ({episodes?.length ?? 0})</h2>
-          <Link href={`/admin/titles/${id}/episodes/new`} className={ghostBtn}>
-            + เพิ่มตอน
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            {title.type === "novel" && (
+              <Link href={`/admin/titles/${id}/import`} className={ghostBtn}>
+                นำเข้าหลายตอน
+              </Link>
+            )}
+            <Link href={`/admin/titles/${id}/episodes/new`} className={ghostBtn}>
+              + เพิ่มตอน
+            </Link>
+          </div>
         </div>
         {!episodes?.length ? (
           <p className="text-muted">ยังไม่มีตอน — กด “+ เพิ่มตอน” เพื่อลงตอนแรก</p>
