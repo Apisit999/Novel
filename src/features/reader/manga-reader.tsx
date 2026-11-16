@@ -139,6 +139,23 @@ export function MangaReader({
     return () => window.removeEventListener("keydown", onKey);
   }, [go]);
 
+  // โหมดพลิกหน้า (ไม่ซูม): ปัดซ้าย = ถัดไป, ปัดขวา = ก่อนหน้า
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStart.current = e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s || mode !== "page" || zoom !== 1) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return;
+    go(dx < 0 ? 1 : -1);
+  }
+
   if (total === 0) {
     return (
       <article>
@@ -249,7 +266,7 @@ export function MangaReader({
           </div>
         </div>
       ) : (
-        <div className="mx-auto max-w-[860px]">
+        <div className="mx-auto max-w-[860px]" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
           <div
             className="overflow-auto"
             style={{ maxHeight: zoom > 1 ? "calc(100dvh - 8rem)" : undefined }}

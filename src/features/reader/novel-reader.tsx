@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { saveProgress } from "@/features/library/local-library";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Markdown } from "./markdown";
 
 export type ReaderLang = "th" | "en" | "zh";
@@ -27,6 +28,7 @@ interface Props {
 const LANG_LABEL: Record<ReaderLang, string> = { th: "ไทย (ต้นฉบับ)", en: "English", zh: "中文" };
 const MIN_SIZE = 1;
 const MAX_SIZE = 2;
+const LEADINGS = [1.7, 2, 2.3] as const;
 
 function setSize(delta: number) {
   const root = document.documentElement;
@@ -61,7 +63,20 @@ export function NovelReader({
   const [lang, setLang] = useState<ReaderLang>("th");
   const [progress, setProgress] = useState(0);
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [leading, setLeading] = useState<number>(2);
   const lastY = useRef(0);
+
+  useEffect(() => {
+    const v = Number(localStorage.getItem("leading"));
+    if ((LEADINGS as readonly number[]).includes(v)) setLeading(v); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
+
+  function cycleLeading() {
+    const i = (LEADINGS as readonly number[]).indexOf(leading);
+    const next = LEADINGS[(i + 1) % LEADINGS.length];
+    setLeading(next);
+    localStorage.setItem("leading", String(next));
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem("lang") as ReaderLang | null;
@@ -112,6 +127,31 @@ export function NovelReader({
       window.removeEventListener("keydown", onKey);
     };
   }, [router, prevHref, nextHref]);
+
+  // ปัดซ้าย = ตอนถัดไป, ปัดขวา = ตอนก่อนหน้า (เฉพาะปัดแนวนอนชัดเจน ไม่ชนกับการเลื่อนอ่าน)
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStart.current = e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 2) return;
+    if (window.getSelection()?.toString()) return; // กำลังเลือกข้อความ
+    if (dx < 0 && nextHref) router.push(nextHref);
+    if (dx > 0 && prevHref) router.push(prevHref);
+  }
+  // แตะที่ข้อความ (ไม่ใช่ลิงก์/ปุ่ม) = สลับแสดง/ซ่อนแถบเครื่องมือ
+  function onTapBody(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest("a,button")) return;
+    if (window.getSelection()?.toString()) return;
+    setToolbarVisible((v) => !v);
+  }
 
   const body = bodies[lang] ?? bodies.th!;
   const langs = (Object.keys(LANG_LABEL) as ReaderLang[]).filter((l) => bodies[l]);
@@ -178,6 +218,15 @@ export function NovelReader({
           >
             ฟอนต์
           </button>
+          <button
+            type="button"
+            onClick={cycleLeading}
+            aria-label={`ระยะห่างบรรทัด ปัจจุบัน ${leading} กดเพื่อเปลี่ยน`}
+            className={btn}
+          >
+            ↕ {leading}
+          </button>
+          <ThemeToggle />
         </div>
       </div>
 
@@ -194,11 +243,14 @@ export function NovelReader({
 
       <div
         lang={lang}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        onClick={onTapBody}
         className="mx-auto mt-6 max-w-[38rem] space-y-[1.2em]"
         style={{
           fontSize: "var(--read-size)",
           fontFamily: "var(--font-reading)",
-          lineHeight: 2,
+          lineHeight: leading,
         }}
       >
         <Markdown source={body.text} />

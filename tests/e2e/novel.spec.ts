@@ -55,3 +55,57 @@ test("ตัวอ่าน: ลูกศรขวาไปตอนถัดไ
     await expect(page).toHaveURL(/\/read\/sample-novel\/2$/, { timeout: 1000 });
   }).toPass({ timeout: 10_000 });
 });
+
+test("ตัวอ่าน: ปรับระยะบรรทัดได้และจำค่า", async ({ page }) => {
+  await page.goto("/read/sample-novel/1");
+  const lh = () =>
+    page
+      .locator("article div[lang=th]")
+      .first()
+      .evaluate(
+        (el) =>
+          parseFloat(getComputedStyle(el).lineHeight) / parseFloat(getComputedStyle(el).fontSize),
+      );
+  await expect(async () => {
+    await page.getByRole("button", { name: /ระยะห่างบรรทัด/ }).click();
+    expect(Math.round((await lh()) * 10) / 10).toBe(2.3);
+  }).toPass({ timeout: 10_000 });
+  await page.reload();
+  await expect(async () => expect(Math.round((await lh()) * 10) / 10).toBe(2.3)).toPass({
+    timeout: 5_000,
+  });
+});
+
+test("ตัวอ่าน: ปัดซ้ายไปตอนถัดไป และแตะข้อความซ่อนแถบเครื่องมือ", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "WebKit สร้าง TouchEvent จากสคริปต์ไม่ได้");
+  await page.goto("/read/sample-novel/1");
+  const swipe = (x1: number, x2: number) =>
+    page.evaluate(
+      ([a, b]) => {
+        const el = document.querySelector("article div[lang=th]")!;
+        const mk = (x: number) =>
+          new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 });
+        el.dispatchEvent(
+          new TouchEvent("touchstart", {
+            bubbles: true,
+            touches: [mk(a)],
+            changedTouches: [mk(a)],
+          }),
+        );
+        el.dispatchEvent(
+          new TouchEvent("touchend", { bubbles: true, touches: [], changedTouches: [mk(b)] }),
+        );
+      },
+      [x1, x2],
+    );
+  const toolbar = page.getByRole("toolbar");
+  await expect(async () => {
+    await page.locator("article div[lang=th]").first().click();
+    await expect(toolbar).toHaveClass(/-translate-y-full/, { timeout: 500 });
+  }).toPass({ timeout: 10_000 });
+
+  await expect(async () => {
+    await swipe(300, 100);
+    await expect(page).toHaveURL(/\/read\/sample-novel\/2$/, { timeout: 1000 });
+  }).toPass({ timeout: 10_000 });
+});
