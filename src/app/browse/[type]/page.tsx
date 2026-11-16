@@ -5,7 +5,14 @@ import { isPaywallEnabled } from "@/features/access/paywall";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CONTENT_TYPES, getContentType } from "@/content-types/registry";
-import { listTags, listTitles, type TitleStatus } from "@/features/catalog/catalog";
+import {
+  listFollowerCounts,
+  listTags,
+  listTitles,
+  listViewCounts,
+  type TitleStatus,
+} from "@/features/catalog/catalog";
+import { compactCount, parseSort, SORTS, sortTitles } from "@/features/catalog/sort";
 import { STATUS_LABEL, TitleCard, TitleGrid } from "@/features/catalog/title-card";
 
 export function generateStaticParams() {
@@ -34,15 +41,31 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
 
   const tag = typeof query.tag === "string" ? query.tag : undefined;
   const status = parseStatus(query.status);
+  const sort = parseSort(query.sort);
   const showPremium = await isPaywallEnabled();
-  const [titles, tags] = await Promise.all([listTitles(def.id, { tag, status }), listTags(def.id)]);
+  const [found, tags, views, followers] = await Promise.all([
+    listTitles(def.id, { tag, status }),
+    listTags(def.id),
+    listViewCounts(),
+    listFollowerCounts(),
+  ]);
+  const titles = sortTitles(found, sort, views);
+  const metaOf = (slug: string) => {
+    const parts = [];
+    if (views[slug])
+      parts.push(`${def.verb === "ดู" ? "ยอดดู" : "ยอดอ่าน"} ${compactCount(views[slug])}`);
+    if (followers[slug]) parts.push(`ผู้ติดตาม ${compactCount(followers[slug])}`);
+    return parts.join(" · ") || undefined;
+  };
 
-  const href = (next: { tag?: string; status?: string }) => {
+  const href = (next: { tag?: string; status?: string; sort?: string }) => {
     const p = new URLSearchParams();
     const t = "tag" in next ? next.tag : tag;
     const s = "status" in next ? next.status : status;
+    const o = "sort" in next ? next.sort : sort;
     if (t) p.set("tag", t);
     if (s) p.set("status", s);
+    if (o && o !== "latest") p.set("sort", o);
     const qs = p.toString();
     return `/browse/${def.id}${qs ? `?${qs}` : ""}`;
   };
@@ -81,6 +104,21 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
             </span>
           ))}
         </p>
+        <p>
+          เรียงตาม:{" "}
+          {SORTS.map((o, i) => (
+            <span key={o.id}>
+              {i > 0 && " · "}
+              <Link
+                href={href({ sort: o.id })}
+                aria-current={o.id === sort ? "true" : undefined}
+                className={o.id === sort ? "font-bold" : "text-accent"}
+              >
+                {o.label}
+              </Link>
+            </span>
+          ))}
+        </p>
       </div>
       {titles.length === 0 ? (
         <p className="text-muted mt-4">ไม่พบ{def.label}ที่ตรงเงื่อนไข</p>
@@ -88,7 +126,7 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
         <div className="mt-6">
           <TitleGrid>
             {titles.map((t) => (
-              <TitleCard key={t.slug} title={t} showPremium={showPremium} />
+              <TitleCard key={t.slug} title={t} showPremium={showPremium} meta={metaOf(t.slug)} />
             ))}
           </TitleGrid>
         </div>

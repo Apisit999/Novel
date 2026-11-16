@@ -12,6 +12,7 @@ const base: TitleSummary = {
   tags: ["รัก", "ดราม่า"],
   coverKey: null,
   featured: false,
+  updateDay: null,
 };
 
 describe("titleJsonLd", () => {

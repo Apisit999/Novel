@@ -43,6 +43,7 @@ export async function saveTitle(_prev: FormState, formData: FormData): Promise<F
     synopsis: formData.get("synopsis") ?? "",
     status: formData.get("status"),
     rating: formData.get("rating"),
+    update_day: String(formData.get("updateDay") ?? ""),
     access: formData.get("access"),
     published: formData.get("published") === "on",
     featured: formData.get("featured") === "on",

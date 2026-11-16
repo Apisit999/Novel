@@ -3,12 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContentType } from "@/content-types/registry";
-import { getTitle, listEpisodes } from "@/features/catalog/catalog";
+import { getTitle, listEpisodes, listFollowerCounts } from "@/features/catalog/catalog";
 import { coverColor } from "@/features/catalog/cover";
 import { coverUrl } from "@/features/catalog/cover-url";
 import { serializeJsonLd, titleJsonLd } from "@/features/catalog/json-ld";
 import { publicEnv } from "@/lib/env";
 import { STATUS_LABEL } from "@/features/catalog/title-card";
+import { compactCount } from "@/features/catalog/sort";
+import { weekdayLabel } from "@/features/catalog/schedule";
 import { FavoriteButton, ReadButton } from "@/features/library/library-actions";
 
 export async function generateMetadata({ params }: PageProps<"/title/[slug]">): Promise<Metadata> {
@@ -35,7 +37,8 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
   const title = await getTitle(slug);
   if (!title) notFound();
   const def = getContentType(title.type);
-  const episodes = await listEpisodes(slug);
+  const [episodes, followers] = await Promise.all([listEpisodes(slug), listFollowerCounts()]);
+  const followerCount = followers[slug] ?? 0;
   const image = coverUrl(title.coverKey);
 
   return (
@@ -67,6 +70,15 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
             {def?.label} · {STATUS_LABEL[title.status]}
           </p>
           <h1 className="mt-1 text-2xl font-bold">{title.name}</h1>
+          {(title.updateDay !== null && title.status === "ongoing") || followerCount > 0 ? (
+            <p className="mt-1 text-sm">
+              {title.updateDay !== null && title.status === "ongoing" && (
+                <span className="font-bold">อัปเดตทุกวัน{weekdayLabel(title.updateDay)}</span>
+              )}
+              {title.updateDay !== null && title.status === "ongoing" && followerCount > 0 && " · "}
+              {followerCount > 0 && <span>ผู้ติดตาม {compactCount(followerCount)} คน</span>}
+            </p>
+          ) : null}
           <p className="mt-2">{title.synopsis}</p>
           {title.tags.length > 0 && (
             <p className="text-muted mt-2 text-sm">{title.tags.join(" · ")}</p>

@@ -25,6 +25,12 @@ export function SiteHeader() {
               {t.label}
             </Link>
           ))}
+          <Link
+            href="/schedule"
+            className="text-foreground hover:bg-background flex min-h-12 items-center rounded-full px-4 no-underline"
+          >
+            ตารางรายวัน
+          </Link>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <Link href="/search" aria-label="ค้นหา" className={iconBtn}>

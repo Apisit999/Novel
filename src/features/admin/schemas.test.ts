@@ -28,6 +28,7 @@ describe("titleSchema", () => {
     synopsis: "",
     status: "ongoing",
     rating: "all",
+    update_day: "",
     access: "free",
     published: false,
     featured: false,
@@ -36,6 +37,13 @@ describe("titleSchema", () => {
   it("แท็ก: ตัดช่องว่าง ตัดซ้ำ ตัดค่าว่าง", () => {
     const r = titleSchema.parse({ ...base, tags: " แฟนตาซี, แอ็คชัน ,, แฟนตาซี " });
     expect(r.tags).toEqual(["แฟนตาซี", "แอ็คชัน"]);
+  });
+  it("วันอัปเดต: ว่าง = null, 0–6 ผ่าน, นอกช่วง/ไม่ใช่เลข ถูกปฏิเสธ", () => {
+    expect(titleSchema.parse(base).update_day).toBeNull();
+    expect(titleSchema.parse({ ...base, update_day: "0" }).update_day).toBe(0);
+    expect(titleSchema.parse({ ...base, update_day: "6" }).update_day).toBe(6);
+    expect(titleSchema.safeParse({ ...base, update_day: "7" }).success).toBe(false);
+    expect(titleSchema.safeParse({ ...base, update_day: "abc" }).success).toBe(false);
   });
   it("ปฏิเสธชนิดที่ไม่มีอยู่และชื่อว่าง", () => {
     expect(titleSchema.safeParse({ ...base, type: "podcast" }).success).toBe(false);

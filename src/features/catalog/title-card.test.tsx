@@ -12,6 +12,7 @@ const base: TitleSummary = {
   access: "premium",
   tags: [],
   featured: false,
+  updateDay: null,
   coverKey: null,
 };
 

@@ -62,6 +62,7 @@ export default async function EditTitlePage({
             synopsis: title.synopsis,
             status: title.status,
             rating: title.rating,
+            updateDay: title.update_day === null ? "" : String(title.update_day),
             access: title.access,
             published: title.published,
             featured: title.featured,

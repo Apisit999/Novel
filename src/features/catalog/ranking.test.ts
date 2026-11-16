@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bangkokDayAgo, trendingSlugs } from "./ranking";
+import { bangkokDayAgo, rankMovement, trendingSlugs } from "./ranking";
 
 const now = new Date("2026-11-15T09:00:00+07:00");
 
@@ -75,5 +75,25 @@ describe("bangkokDayAgo", () => {
   it("ใช้วันตามเวลาไทย (ตี 1 ไทย = ยังเป็นวันก่อนหน้าตาม UTC)", () => {
     expect(bangkokDayAgo(new Date("2026-11-14T18:30:00Z"), 0)).toBe("2026-11-15");
     expect(bangkokDayAgo(new Date("2026-11-15T09:00:00+07:00"), 14)).toBe("2026-11-01");
+  });
+});
+
+describe("rankMovement", () => {
+  const now = new Date("2026-11-16T05:00:00Z"); // จันทร์ 16 พ.ย. 12:00 ไทย
+  it("ขึ้น/ลง/เข้าใหม่ เทียบอันดับเมื่อวาน", () => {
+    const rows = [
+      { slug: "a", day: "2026-11-15", count: 100 },
+      { slug: "b", day: "2026-11-15", count: 50 },
+      // วันนี้ b พุ่งแซง a และ c เข้าใหม่
+      { slug: "b", day: "2026-11-16", count: 500 },
+      { slug: "c", day: "2026-11-16", count: 20 },
+    ];
+    const m = rankMovement(rows, now);
+    expect(m.get("b")).toBe(1); // เมื่อวานที่ 2 → วันนี้ที่ 1
+    expect(m.get("a")).toBe(-1);
+    expect(m.get("c")).toBe("new");
+  });
+  it("ไม่มียอดเมื่อวานเลย → ไม่แสดงการขยับ", () => {
+    expect(rankMovement([{ slug: "a", day: "2026-11-16", count: 5 }], now).size).toBe(0);
   });
 });

@@ -31,6 +31,7 @@ export function TopTenSection({ title, config, ctx }: Props<"top_ten">) {
   return (
     <TopTen
       heading={title || undefined}
+      movement={ctx.movement}
       lists={{
         all: ranked,
         novel: ofType("novel"),

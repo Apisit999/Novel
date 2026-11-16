@@ -16,12 +16,15 @@ export function TitleCard({
   title,
   showPremium = false,
   showType = true,
+  meta,
 }: {
   title: TitleSummary;
   /** แสดงป้าย premium เฉพาะเมื่อเปิด paywall (ช่วงเปิดฟรีทุกอย่างเปิดอ่านได้ ไม่ควรมีป้ายหลอก) */
   showPremium?: boolean;
   /** แสดงป้ายประเภท (ปิดได้ในโซนที่หัวโซนบอกประเภทอยู่แล้ว) */
   showType?: boolean;
+  /** ข้อความสถิติใต้ชื่อ เช่น "ยอดดู 1.2K" — ต้องมีป้ายบอกความหมายของตัวเลขเสมอ */
+  meta?: string;
 }) {
   const label = getContentType(title.type)?.label ?? "";
   const image = coverUrl(title.coverKey);
@@ -54,7 +57,10 @@ export function TitleCard({
         )}
       </div>
       <span className="text-foreground text-lg leading-snug font-bold">{title.name}</span>
-      <span className="text-muted text-sm">{STATUS_LABEL[title.status]}</span>
+      <span className="text-muted text-sm">
+        {STATUS_LABEL[title.status]}
+        {meta ? ` · ${meta}` : ""}
+      </span>
     </Link>
   );
 }

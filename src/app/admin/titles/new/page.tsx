@@ -14,6 +14,7 @@ export default async function NewTitlePage() {
           synopsis: "",
           status: "ongoing",
           rating: "all",
+          updateDay: "",
           access: "free",
           published: false,
           featured: false,

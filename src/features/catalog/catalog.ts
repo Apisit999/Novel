@@ -5,7 +5,7 @@ import { adminDb } from "@/server/admin-db";
 import { publicDb } from "@/server/db";
 import { activePins, type Pin } from "@/features/home/pins";
 import { latestSlugs, pickFeatured, pickFeaturedList, resolveSlugs } from "./discovery";
-import { bangkokDayAgo, trendingSlugs } from "./ranking";
+import { bangkokDayAgo, rankMovement, trendingSlugs, type RankMove } from "./ranking";
 import { signedReadUrls, VIDEO_BUCKET } from "@/server/storage";
 import { searchIn } from "./search";
 
@@ -24,6 +24,8 @@ export interface TitleSummary {
   coverKey: string | null;
   /** แอดมินติ๊กเป็นเรื่องเด่น (แบนเนอร์หน้าแรก) */
   featured: boolean;
+  /** วันอัปเดตประจำสัปดาห์ 0 = อาทิตย์ … 6 = เสาร์ (null = ไม่ระบุ) */
+  updateDay: number | null;
 }
 
 export interface EpisodeSummary {
@@ -60,7 +62,7 @@ export interface TitleFilter {
  */
 
 const TITLE_COLUMNS =
-  "slug, type, name, synopsis, status, access, featured, cover_key, title_tags(tags(name))";
+  "slug, type, name, synopsis, status, access, featured, update_day, cover_key, title_tags(tags(name))";
 
 interface TitleRow {
   slug: string;
@@ -70,6 +72,7 @@ interface TitleRow {
   status: TitleStatus;
   access: Access;
   featured: boolean;
+  update_day: number | null;
   cover_key: string | null;
   title_tags: { tags: { name: string } | null }[];
 }
@@ -83,6 +86,7 @@ function toSummary(row: TitleRow): TitleSummary {
     status: row.status,
     access: row.access,
     featured: row.featured,
+    updateDay: row.update_day,
     coverKey: row.cover_key,
     tags: row.title_tags.flatMap((t) => (t.tags ? [t.tags.name] : [])).sort(),
   };
@@ -397,6 +401,51 @@ export async function listTrending(limit = 60): Promise<TitleSummary[]> {
     { fresh },
   );
   return resolveSlugs(slugs, await listAllTitles()).slice(0, limit);
+}
+
+/** การขยับอันดับ "ฮิตช่วงนี้" เทียบเมื่อวาน (slug → ขึ้น/ลง/เข้าใหม่) — ว่างถ้ายังไม่มียอดเมื่อวาน */
+export async function listTrendingMovement(): Promise<Record<string, RankMove>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "views");
+
+  const now = new Date();
+  const rows = must(
+    await publicDb()
+      .from("title_views_daily")
+      .select("day, view_count, titles!inner(slug)")
+      .gte("day", bangkokDayAgo(now, 16))
+      .limit(5000),
+    "ยอดรายวัน",
+  );
+  const moves = rankMovement(
+    rows.map((r) => ({ slug: r.titles.slug, day: r.day, count: r.view_count })),
+    now,
+  );
+  return Object.fromEntries(moves);
+}
+
+/** ยอดดู/อ่านสะสมต่อเรื่อง (slug → จำนวน) */
+export async function listViewCounts(): Promise<Record<string, number>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "views");
+
+  const rows = must(
+    await publicDb().from("title_views").select("view_count, titles!inner(slug)").limit(5000),
+    "ยอดดูสะสม",
+  );
+  return Object.fromEntries(rows.map((r) => [r.titles.slug, Number(r.view_count)]));
+}
+
+/** จำนวนผู้ติดตามต่อเรื่อง (นับจากผู้ใช้ที่ล็อกอิน) — เรื่องที่ไม่มีผู้ติดตามไม่อยู่ในผลลัพธ์ */
+export async function listFollowerCounts(): Promise<Record<string, number>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "followers");
+
+  const rows = must(await publicDb().rpc("title_follower_counts"), "ผู้ติดตาม");
+  return Object.fromEntries(rows.map((r) => [r.slug, Number(r.followers)]));
 }
 
 export interface HomeSectionRow {

@@ -58,3 +58,35 @@ export function bangkokDayAgo(now: Date, days: number): string {
   const shifted = new Date(now.getTime() + 7 * 3_600_000 - days * DAY_MS);
   return shifted.toISOString().slice(0, 10);
 }
+
+/** การขยับอันดับเทียบเมื่อวาน: เลขบวก = ขึ้น N อันดับ, ลบ = ลง, "new" = เพิ่งเข้าอันดับ */
+export type RankMove = number | "new";
+
+/**
+ * เทียบอันดับ "ตอนนี้" กับ "เมื่อวานนี้" (ตัดยอดของวันนี้ออกแล้วคิดอันดับเหมือนเมื่อวาน)
+ * คืนเฉพาะเรื่องที่อยู่ในอันดับปัจจุบัน; ยอดเมื่อวานไม่มีเลย (เว็บใหม่) → ไม่แสดงการขยับ (ว่าง)
+ * ไม่คิดโบนัสเรื่องมีตอนใหม่ (fresh) กับอันดับเมื่อวาน เพราะไม่รู้ว่าเมื่อวานใครมีตอนใหม่
+ */
+export function rankMovement(
+  rows: DailyView[],
+  now: Date,
+  opts: TrendingOptions = {},
+): Map<string, RankMove> {
+  const current = trendingSlugs(rows, now, opts);
+  const yesterday = new Date(now.getTime() - DAY_MS);
+  const cutoff = bangkokDayAgo(now, 1);
+  const previous = trendingSlugs(
+    rows.filter((r) => r.day <= cutoff),
+    yesterday,
+    { ...opts, fresh: [] },
+  );
+  const out = new Map<string, RankMove>();
+  if (previous.length === 0) return out;
+  const before = new Map(previous.map((slug, i) => [slug, i]));
+  current.forEach((slug, i) => {
+    const was = before.get(slug);
+    if (was === undefined) out.set(slug, "new");
+    else if (was !== i) out.set(slug, was - i);
+  });
+  return out;
+}

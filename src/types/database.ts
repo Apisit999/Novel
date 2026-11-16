@@ -596,6 +596,7 @@ export type Database = {
           status: Database["public"]["Enums"]["title_status"];
           synopsis: string;
           type: Database["public"]["Enums"]["content_type"];
+          update_day: number | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -612,6 +613,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["title_status"];
           synopsis?: string;
           type: Database["public"]["Enums"]["content_type"];
+          update_day?: number | null;
           updated_at?: string;
         };
         Update: {
@@ -627,6 +629,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["title_status"];
           synopsis?: string;
           type?: Database["public"]["Enums"]["content_type"];
+          update_day?: number | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -670,6 +673,10 @@ export type Database = {
       episode_is_visible: { Args: { p_episode_id: string }; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       record_title_view: { Args: { p_slug: string }; Returns: undefined };
+      title_follower_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: { slug: string; followers: number }[];
+      };
     };
     Enums: {
       access_level: "free" | "premium";

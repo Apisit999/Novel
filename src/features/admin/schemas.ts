@@ -15,6 +15,11 @@ export const titleSchema = z.object({
   synopsis: z.string().trim().max(5000).default(""),
   status: z.enum(["ongoing", "completed", "hiatus"]),
   rating: z.enum(["all", "13", "18"]),
+  /** วันอัปเดตประจำสัปดาห์ 0 = อาทิตย์ … 6 = เสาร์ (ว่าง = ไม่ระบุ) */
+  update_day: z
+    .string()
+    .transform((v) => (v === "" ? null : Number(v)))
+    .pipe(z.number().int().min(0).max(6).nullable()),
   access: z.enum(["free", "premium"]),
   published: z.boolean(),
   /** เรื่องเด่น: ขึ้นแบนเนอร์หน้าแรก */

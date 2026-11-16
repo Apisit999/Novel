@@ -6,6 +6,7 @@ import { useState } from "react";
 import { CONTENT_TYPES } from "@/content-types/registry";
 import type { TitleSummary, TitleType } from "@/features/catalog/catalog";
 import { coverColor } from "@/features/catalog/cover";
+import type { RankMove } from "@/features/catalog/ranking";
 import { coverUrl } from "@/features/catalog/cover-url";
 import { TYPE_STYLE } from "@/features/catalog/type-style";
 
@@ -15,9 +16,12 @@ type Tab = "all" | TitleType;
 export function TopTen({
   lists,
   heading = "10 อันดับยอดฮิต",
+  movement = {},
 }: {
   lists: Record<Tab, TitleSummary[]>;
   heading?: string;
+  /** การขยับอันดับเทียบเมื่อวาน — แสดงเฉพาะแท็บ "ทั้งหมด" (อันดับในแท็บประเภทคนละชุดกัน) */
+  movement?: Record<string, RankMove>;
 }) {
   const [tab, setTab] = useState<Tab>("all");
   const tabs: { id: Tab; label: string }[] = [
@@ -91,6 +95,7 @@ export function TopTen({
                     <span className="sr-only">อันดับ {n + 1} </span>
                     {t.name}
                   </span>
+                  {tab === "all" && <MoveBadge move={movement[t.slug]} />}
                 </Link>
               </li>
             );
@@ -98,5 +103,19 @@ export function TopTen({
         </ol>
       )}
     </section>
+  );
+}
+
+/** ป้ายขึ้น/ลง/ใหม่ — ใช้ทั้งสีและสัญลักษณ์ (ไม่พึ่งสีอย่างเดียว) พร้อมข้อความสำหรับโปรแกรมอ่านหน้าจอ */
+function MoveBadge({ move }: { move: RankMove | undefined }) {
+  if (move === undefined) return null;
+  if (move === "new") {
+    return <span className="text-accent text-sm font-bold">ใหม่ในอันดับ</span>;
+  }
+  const up = move > 0;
+  return (
+    <span className={`text-sm font-bold ${up ? "text-accent" : "text-muted"}`}>
+      <span aria-hidden="true">{up ? "▲" : "▼"}</span> {up ? "ขึ้น" : "ลง"} {Math.abs(move)} อันดับ
+    </span>
   );
 }

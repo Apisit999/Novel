@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { WEEKDAYS } from "@/features/catalog/schedule";
 import { saveTitle, type FormState } from "./actions";
 import { submitKeepingValues } from "./submit";
 import { Field, inputCls, primaryBtn } from "./ui";
@@ -13,6 +14,8 @@ export interface TitleFormValues {
   synopsis: string;
   status: "ongoing" | "completed" | "hiatus";
   rating: "all" | "13" | "18";
+  /** "" = ไม่ระบุ, "0"–"6" = อาทิตย์–เสาร์ */
+  updateDay: string;
   access: "free" | "premium";
   published: boolean;
   featured: boolean;
@@ -96,6 +99,26 @@ export function TitleForm({ values }: { values: TitleFormValues }) {
           </select>
         </Field>
       </div>
+
+      <Field
+        label="วันอัปเดตประจำสัปดาห์"
+        htmlFor="updateDay"
+        hint="ใช้ทำตารางรายวันและบอกผู้อ่านว่า “อัปเดตทุกวัน…” เรื่องที่จบแล้วจะไม่ขึ้นในตาราง"
+      >
+        <select
+          id="updateDay"
+          name="updateDay"
+          defaultValue={values.updateDay}
+          className={inputCls}
+        >
+          <option value="">ไม่ระบุ</option>
+          {WEEKDAYS.map((d) => (
+            <option key={d.id} value={d.id}>
+              ทุกวัน{d.label}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field label="แท็ก" htmlFor="tags" hint="คั่นด้วยจุลภาค เช่น แฟนตาซี, โรแมนติก — แท็กใหม่ถูกสร้างให้เอง">
         <input id="tags" name="tags" defaultValue={values.tags} className={inputCls} />

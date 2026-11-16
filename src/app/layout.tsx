@@ -45,6 +45,7 @@ const initScript = `
 const NAV_ITEMS = [
   { href: "/", label: "หน้าแรก" },
   ...CONTENT_TYPES.map((t) => ({ href: `/browse/${t.id}`, label: t.label })),
+  { href: "/schedule", label: "รายวัน" },
   { href: "/library", label: "ของฉัน" },
 ];
 
