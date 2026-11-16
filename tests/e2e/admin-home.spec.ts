@@ -136,6 +136,17 @@ test.describe("จัดหน้าแรก (ต้องมี SUPABASE_SERVI
     // ยกเลิกปัก แล้วสั่งซ่อน
     await page.goto("/admin/home/promotions");
     await page.getByRole("button", { name: "ยกเลิกการปัก" }).click();
+    // รอจนการยกเลิกบันทึกจริงก่อนไปขั้นต่อไป (อย่าพึ่งแบนเนอร์ "บันทึกแล้ว" ที่อาจค้างจากขั้นก่อน)
+    await expect
+      .poll(
+        async () =>
+          (await admin().from("home_pins").select("title_id").eq("title_id", ins.data!.id)).data
+            ?.length,
+        {
+          timeout: 15_000,
+        },
+      )
+      .toBe(0);
     await page.getByLabel("เรื่อง", { exact: true }).selectOption(slug);
     await page.getByLabel("ทำอะไร").selectOption("hidden");
     await page.getByRole("button", { name: "ปักเรื่องนี้" }).click();
@@ -203,7 +214,26 @@ test.describe("จัดหน้าแรก (ต้องมี SUPABASE_SERVI
     await picker.getByRole("button", { name: "เพิ่ม", exact: true }).click();
     await expect(picker.getByText(`1. ${name}`)).toBeVisible();
     await page.getByRole("button", { name: "บันทึกรายการเรื่อง" }).click();
-    await expect(page.getByText("บันทึกแล้ว")).toBeVisible();
+    // ข้อความ "บันทึกแล้ว" อาจเป็นแบนเนอร์ค้างจากขั้นสร้างชุด (หน้าเดิม) → ผ่านทันทีทั้งที่ยังไม่ได้บันทึก
+    // แล้ว page.goto ถัดไปจะตัดคำขอที่ค้างอยู่ (เคยทำให้ชุดไม่มีเรื่อง ล้มสุ่ม ~50%) → รอจนฐานข้อมูลมีรายการจริง
+    await expect
+      .poll(
+        async () => {
+          const col = await admin()
+            .from("collections")
+            .select("id")
+            .eq("slug", `col-${stamp}`)
+            .maybeSingle();
+          if (!col.data) return 0;
+          const items = await admin()
+            .from("collection_items")
+            .select("title_id")
+            .eq("collection_id", col.data.id);
+          return items.data?.length ?? 0;
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(1);
 
     // 3) เพิ่มเป็นส่วนของหน้าแรก (เลือกชุดจากรายการ)
     await page.goto("/admin/home");
