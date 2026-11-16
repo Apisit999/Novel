@@ -4,10 +4,13 @@ import { admin, deleteTitleBySlug, hasAdmin, revalidateCatalog } from "./helpers
 // ใช้ฐานข้อมูลจริง (ต้อง push migration update_day_followers ก่อน) → ข้ามถ้าไม่มี service role key
 test.describe("ตารางอัปเดตรายวัน + เรียงลำดับหน้าหมวด", () => {
   test.skip(!hasAdmin, "ไม่มี service role key");
-  const stamp = Date.now().toString(36);
-  const slugs = [`e2e-sch-mon-${stamp}`, `e2e-sch-done-${stamp}`, `e2e-sch-z-${stamp}`];
+  // ตัวระบุต่อโปรเจกต์ + สุ่ม: 5 โปรเจกต์โหลดไฟล์ในมิลลิวินาทีเดียวกันได้ → Date.now() อย่างเดียวชนกัน
+  let stamp = "";
+  let slugs: string[] = [];
 
-  test.beforeEach(async () => {
+  test.beforeEach(async ({}, info) => {
+    stamp = `${info.project.name}-${Math.random().toString(36).slice(2, 7)}`;
+    slugs = [`e2e-sch-mon-${stamp}`, `e2e-sch-done-${stamp}`, `e2e-sch-z-${stamp}`];
     const db = admin();
     const rows = [
       { slug: slugs[0], name: `เรื่องวันจันทร์ ${stamp}`, status: "ongoing", update_day: 1 },

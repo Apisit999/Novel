@@ -13,6 +13,12 @@ export const titleSchema = z.object({
   slug: slugSchema,
   name: z.string().trim().min(1, "กรุณากรอกชื่อเรื่อง").max(200),
   synopsis: z.string().trim().max(5000).default(""),
+  /** ชื่อผู้แต่ง/ผู้สร้าง (ว่าง = ไม่ระบุ) */
+  author: z
+    .string()
+    .trim()
+    .max(100, "ชื่อผู้แต่งยาวเกินไป (ไม่เกิน 100 ตัวอักษร)")
+    .transform((v) => (v === "" ? null : v)),
   status: z.enum(["ongoing", "completed", "hiatus"]),
   rating: z.enum(["all", "13", "18"]),
   /** วันอัปเดตประจำสัปดาห์ 0 = อาทิตย์ … 6 = เสาร์ (ว่าง = ไม่ระบุ) */

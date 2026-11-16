@@ -12,6 +12,7 @@ export interface TitleFormValues {
   slug: string;
   name: string;
   synopsis: string;
+  author: string;
   status: "ongoing" | "completed" | "hiatus";
   rating: "all" | "13" | "18";
   /** "" = ไม่ระบุ, "0"–"6" = อาทิตย์–เสาร์ */
@@ -63,6 +64,20 @@ export function TitleForm({ values }: { values: TitleFormValues }) {
           required
           autoCapitalize="none"
           spellCheck={false}
+          className={inputCls}
+        />
+      </Field>
+
+      <Field
+        label="ผู้แต่ง/ผู้สร้าง"
+        htmlFor="author"
+        hint="ว่างได้ — เรื่องที่ใช้ชื่อเดียวกันจะรวมอยู่ในหน้าผู้สร้างเดียวกัน"
+      >
+        <input
+          id="author"
+          name="author"
+          defaultValue={values.author}
+          maxLength={100}
           className={inputCls}
         />
       </Field>

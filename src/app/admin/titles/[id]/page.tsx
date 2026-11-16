@@ -60,6 +60,7 @@ export default async function EditTitlePage({
             slug: title.slug,
             name: title.name,
             synopsis: title.synopsis,
+            author: title.author ?? "",
             status: title.status,
             rating: title.rating,
             updateDay: title.update_day === null ? "" : String(title.update_day),

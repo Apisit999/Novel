@@ -14,6 +14,7 @@ const base: TitleSummary = {
   featured: false,
   updateDay: null,
   rating: "all",
+  author: null,
   coverKey: null,
 };
 

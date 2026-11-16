@@ -12,6 +12,7 @@ export function titleJsonLd(title: TitleSummary, siteUrl: string) {
     description: title.synopsis || undefined,
     url: `${siteUrl}/title/${title.slug}`,
     inLanguage: "th",
+    ...(title.author && { author: { "@type": "Person", name: title.author } }),
     ...(image && { image }),
     ...(title.tags.length > 0 && { keywords: title.tags.join(", ") }),
   };

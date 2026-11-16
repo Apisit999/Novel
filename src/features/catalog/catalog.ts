@@ -29,6 +29,8 @@ export interface TitleSummary {
   updateDay: number | null;
   /** เรตอายุ: all = ทุกวัย */
   rating: AgeRating;
+  /** ชื่อผู้แต่ง/ผู้สร้าง (null = ไม่ระบุ) */
+  author: string | null;
 }
 
 export interface EpisodeSummary {
@@ -67,7 +69,7 @@ export interface TitleFilter {
  */
 
 const TITLE_COLUMNS =
-  "slug, type, name, synopsis, status, access, featured, update_day, rating, cover_key, title_tags(tags(name))";
+  "slug, type, name, synopsis, status, access, featured, update_day, rating, author, cover_key, title_tags(tags(name))";
 
 interface TitleRow {
   slug: string;
@@ -79,6 +81,7 @@ interface TitleRow {
   featured: boolean;
   update_day: number | null;
   rating: AgeRating;
+  author: string | null;
   cover_key: string | null;
   title_tags: { tags: { name: string } | null }[];
 }
@@ -94,6 +97,7 @@ function toSummary(row: TitleRow): TitleSummary {
     featured: row.featured,
     updateDay: row.update_day,
     rating: row.rating,
+    author: row.author,
     coverKey: row.cover_key,
     tags: row.title_tags.flatMap((t) => (t.tags ? [t.tags.name] : [])).sort(),
   };

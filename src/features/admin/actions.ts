@@ -41,6 +41,7 @@ export async function saveTitle(_prev: FormState, formData: FormData): Promise<F
     slug: formData.get("slug"),
     name: formData.get("name"),
     synopsis: formData.get("synopsis") ?? "",
+    author: String(formData.get("author") ?? ""),
     status: formData.get("status"),
     rating: formData.get("rating"),
     update_day: String(formData.get("updateDay") ?? ""),

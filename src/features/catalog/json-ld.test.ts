@@ -14,6 +14,7 @@ const base: TitleSummary = {
   featured: false,
   updateDay: null,
   rating: "all",
+  author: null,
 };
 
 describe("titleJsonLd", () => {
@@ -34,5 +35,14 @@ describe("serializeJsonLd", () => {
     const s = serializeJsonLd({ name: "</script><script>alert(1)</script>" });
     expect(s).not.toContain("<");
     expect(JSON.parse(s).name).toBe("</script><script>alert(1)</script>");
+  });
+});
+
+describe("JSON-LD ผู้แต่ง", () => {
+  it("มี author เป็น Person เมื่อระบุชื่อ และไม่มีคีย์เมื่อไม่ระบุ", () => {
+    expect(titleJsonLd({ ...base, author: "สมชาย ใจดี" }, "https://x.test")).toMatchObject({
+      author: { "@type": "Person", name: "สมชาย ใจดี" },
+    });
+    expect(titleJsonLd(base, "https://x.test")).not.toHaveProperty("author");
   });
 });

@@ -8,6 +8,14 @@ import { NextResponse, type NextRequest } from "next/server";
  * - ไม่ตัดสินสิทธิ์ที่นี่ — สิทธิ์ตัดสินที่ RLS/can_access เท่านั้น
  */
 export async function proxy(request: NextRequest) {
+  // URL ที่เข้ารหัส % เสีย (เช่น /title/%E0%A4%A) ทำให้ Next คืน 500 ทุกเส้นทางที่มีพารามิเตอร์
+  // → ตอบ 400 ตรง ๆ (ความผิดอยู่ที่คำขอ ไม่ใช่เซิร์ฟเวอร์ — 500 ทำให้ดูเหมือนระบบพังและรบกวนการเฝ้าระวัง)
+  try {
+    decodeURIComponent(request.nextUrl.pathname);
+  } catch {
+    return new NextResponse("Bad Request", { status: 400 });
+  }
+
   const hasSession = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
   if (!hasSession) {
     // หลังบ้าน: ไม่มีเซสชันเลย → ส่งไปล็อกอินทันที (ชั้นนอก; สิทธิ์แอดมินจริงตรวจในหน้า/action และ RLS)

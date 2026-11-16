@@ -599,6 +599,7 @@ export type Database = {
       };
       titles: {
         Row: {
+          author: string | null;
           access: Database["public"]["Enums"]["access_level"];
           cover_key: string | null;
           created_at: string;
@@ -616,6 +617,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          author?: string | null;
           access?: Database["public"]["Enums"]["access_level"];
           cover_key?: string | null;
           created_at?: string;
@@ -632,6 +634,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          author?: string | null;
           access?: Database["public"]["Enums"]["access_level"];
           cover_key?: string | null;
           created_at?: string;

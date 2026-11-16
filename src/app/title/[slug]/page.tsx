@@ -80,6 +80,17 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
             {title.rating !== "all" && ` · เรต ${title.rating}+`}
           </p>
           <h1 className="mt-1 text-2xl font-bold">{title.name}</h1>
+          {title.author && (
+            <p className="mt-1">
+              โดย{" "}
+              <Link
+                href={`/author/${encodeURIComponent(title.author)}`}
+                className="text-accent font-bold"
+              >
+                {title.author}
+              </Link>
+            </p>
+          )}
           {(title.updateDay !== null && title.status === "ongoing") || followerCount > 0 ? (
             <p className="mt-1 text-sm">
               {title.updateDay !== null && title.status === "ongoing" && (

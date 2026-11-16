@@ -36,3 +36,15 @@ test("ประเภทที่ไม่มีอยู่ได้หน้�
   expect(res?.status()).toBe(404);
   await expect(page.getByText("ไม่พบหน้าที่ต้องการ")).toBeVisible();
 });
+
+test("URL ที่เข้ารหัส % เสียได้ 400 ไม่ใช่ 500 (ทุกเส้นทางที่มีพารามิเตอร์)", async ({ request }) => {
+  for (const path of [
+    "/title/%E0%A4%A",
+    "/browse/%E0%A4%A",
+    "/read/%E0%A4%A/1",
+    "/author/%E0%A4%A",
+  ]) {
+    const res = await request.get(path);
+    expect(res.status(), path).toBe(400);
+  }
+});

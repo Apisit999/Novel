@@ -26,6 +26,7 @@ describe("titleSchema", () => {
     slug: "x-novel",
     name: "ชื่อ",
     synopsis: "",
+    author: "",
     status: "ongoing",
     rating: "all",
     update_day: "",
@@ -44,6 +45,11 @@ describe("titleSchema", () => {
     expect(titleSchema.parse({ ...base, update_day: "6" }).update_day).toBe(6);
     expect(titleSchema.safeParse({ ...base, update_day: "7" }).success).toBe(false);
     expect(titleSchema.safeParse({ ...base, update_day: "abc" }).success).toBe(false);
+  });
+  it("ผู้แต่ง: ตัดช่องว่าง ว่าง = null ยาวเกิน 100 ถูกปฏิเสธ", () => {
+    expect(titleSchema.parse(base).author).toBeNull();
+    expect(titleSchema.parse({ ...base, author: "  สมชาย  " }).author).toBe("สมชาย");
+    expect(titleSchema.safeParse({ ...base, author: "ก".repeat(101) }).success).toBe(false);
   });
   it("ปฏิเสธชนิดที่ไม่มีอยู่และชื่อว่าง", () => {
     expect(titleSchema.safeParse({ ...base, type: "podcast" }).success).toBe(false);

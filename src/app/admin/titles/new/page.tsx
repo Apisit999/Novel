@@ -12,6 +12,7 @@ export default async function NewTitlePage() {
           slug: "",
           name: "",
           synopsis: "",
+          author: "",
           status: "ongoing",
           rating: "all",
           updateDay: "",
