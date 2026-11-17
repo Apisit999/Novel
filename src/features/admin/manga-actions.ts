@@ -238,3 +238,49 @@ export async function setTitleCover(rawTitleId: string, rawKey: string | null): 
     await removeCover(db, old.data.cover_key);
   updateTag("catalog");
 }
+
+// ---------------------------------------------------------------- นำเข้าหลายตอน (มังงะ)
+
+/** สร้างตอนเปล่าสำหรับนำเข้าเป็นชุด; ถ้าเลขตอนมีอยู่แล้วคืน existed=true (ไม่แตะของเดิม) */
+export async function createImportEpisode(raw: {
+  titleId: string;
+  number: number;
+  name: string;
+  status: "draft" | "published";
+}): Promise<{ episodeId: string; existed: boolean }> {
+  const { db } = await requireAdmin();
+  const v = z
+    .object({
+      titleId: z.string().uuid(),
+      number: z.number().int().positive().max(100_000),
+      name: z.string().trim().min(1).max(200),
+      status: z.enum(["draft", "published"]),
+    })
+    .parse(raw);
+  const title = await db.from("titles").select("type").eq("id", v.titleId).maybeSingle();
+  if (title.data?.type !== "manga") throw new Error("เรื่องนี้ไม่ใช่มังงะ");
+
+  const old = await db
+    .from("episodes")
+    .select("id")
+    .eq("title_id", v.titleId)
+    .eq("number", v.number)
+    .maybeSingle();
+  if (old.data) return { episodeId: old.data.id, existed: true };
+
+  const { data, error } = await db
+    .from("episodes")
+    .insert({
+      title_id: v.titleId,
+      number: v.number,
+      name: v.name,
+      access: "inherit",
+      status: v.status,
+      publish_at: null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error("สร้างตอนไม่สำเร็จ");
+  updateTag("catalog");
+  return { episodeId: data.id, existed: false };
+}
