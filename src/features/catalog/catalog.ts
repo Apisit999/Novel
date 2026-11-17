@@ -37,6 +37,8 @@ export interface EpisodeSummary {
   number: number;
   name: string;
   access: EpisodeAccess;
+  /** วันที่ตอนขึ้น (เวลาตั้งเผยแพร่ ถ้าไม่มีใช้วันที่สร้าง) — ISO */
+  publishedAt?: string;
 }
 
 export type TranslationLang = "en" | "zh";
@@ -156,12 +158,17 @@ export async function listEpisodes(slug: string): Promise<EpisodeSummary[]> {
   const rows = must(
     await publicDb()
       .from("episodes")
-      .select("number, name, access, titles!inner(slug)")
+      .select("number, name, access, publish_at, created_at, titles!inner(slug)")
       .eq("titles.slug", slug)
       .order("number", { ascending: true }),
     "รายการตอน",
   );
-  return rows.map((r) => ({ number: r.number, name: r.name, access: r.access }));
+  return rows.map((r) => ({
+    number: r.number,
+    name: r.name,
+    access: r.access,
+    publishedAt: r.publish_at ?? r.created_at,
+  }));
 }
 
 /**

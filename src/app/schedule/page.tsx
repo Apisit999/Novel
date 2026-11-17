@@ -4,7 +4,11 @@ import { Suspense } from "react";
 import { isPaywallEnabled } from "@/features/access/paywall";
 import { listAllTitles } from "@/features/catalog/catalog";
 import { bangkokWeekday, parseWeekday, WEEKDAYS, weekdayLabel } from "@/features/catalog/schedule";
+import { Pagination } from "@/components/pagination";
+import { paginate, parsePage } from "@/lib/paginate";
 import { TitleCard, TitleGrid } from "@/features/catalog/title-card";
+
+const PER_PAGE = 24;
 
 export const metadata: Metadata = {
   title: "ตารางอัปเดตรายวัน",
@@ -15,10 +19,15 @@ export const metadata: Metadata = {
 async function Schedule({ props }: { props: PageProps<"/schedule"> }) {
   const query = await props.searchParams;
   const today = bangkokWeekday(new Date());
+  const done = query.day === "done"; // แท็บ "จบแล้ว" (เหมือนแท็บจบแล้วของ WEBTOON)
   const day = parseWeekday(query.day) ?? today;
   const [all, showPremium] = await Promise.all([listAllTitles(), isPaywallEnabled()]);
   // เรื่องที่จบแล้วไม่อยู่ในตาราง (ไม่มีตอนใหม่ให้รอ)
-  const titles = all.filter((t) => t.updateDay === day && t.status !== "completed");
+  const matched = done
+    ? all.filter((t) => t.status === "completed").sort((a, b) => a.name.localeCompare(b.name, "th"))
+    : all.filter((t) => t.updateDay === day && t.status !== "completed");
+  const pg = paginate(matched.length, parsePage(query.page), PER_PAGE);
+  const titles = matched.slice(pg.start, pg.end);
 
   return (
     <>
@@ -27,9 +36,9 @@ async function Schedule({ props }: { props: PageProps<"/schedule"> }) {
           <Link
             key={d.id}
             href={`/schedule?day=${d.id}`}
-            aria-current={d.id === day ? "true" : undefined}
+            aria-current={!done && d.id === day ? "true" : undefined}
             className={`flex min-h-12 items-center rounded-full border px-5 font-bold no-underline ${
-              d.id === day
+              !done && d.id === day
                 ? "bg-accent text-accent-foreground border-accent"
                 : "border-border bg-surface text-foreground"
             }`}
@@ -38,9 +47,22 @@ async function Schedule({ props }: { props: PageProps<"/schedule"> }) {
             {d.id === today && <span className="ml-2 text-sm font-normal">วันนี้</span>}
           </Link>
         ))}
+        <Link
+          href="/schedule?day=done"
+          aria-current={done ? "true" : undefined}
+          className={`flex min-h-12 items-center rounded-full border px-5 font-bold no-underline ${
+            done
+              ? "bg-accent text-accent-foreground border-accent"
+              : "border-border bg-surface text-foreground"
+          }`}
+        >
+          จบแล้ว
+        </Link>
       </nav>
       {titles.length === 0 ? (
-        <p className="text-muted mt-6">ยังไม่มีเรื่องที่อัปเดตทุกวัน{weekdayLabel(day)}</p>
+        <p className="text-muted mt-6">
+          {done ? "ยังไม่มีเรื่องที่จบแล้ว" : `ยังไม่มีเรื่องที่อัปเดตทุกวัน${weekdayLabel(day)}`}
+        </p>
       ) : (
         <div className="mt-6">
           <TitleGrid>
@@ -49,10 +71,18 @@ async function Schedule({ props }: { props: PageProps<"/schedule"> }) {
                 key={t.slug}
                 title={t}
                 showPremium={showPremium}
-                meta={`ทุกวัน${weekdayLabel(day)}`}
+                meta={done ? "จบแล้ว" : `ทุกวัน${weekdayLabel(day)}`}
               />
             ))}
           </TitleGrid>
+          <Pagination
+            page={pg.page}
+            totalPages={pg.totalPages}
+            href={(n) => {
+              const base = done ? "/schedule?day=done" : `/schedule?day=${day}`;
+              return n > 1 ? `${base}&page=${n}` : base;
+            }}
+          />
         </div>
       )}
     </>

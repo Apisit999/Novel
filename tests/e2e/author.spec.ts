@@ -31,7 +31,8 @@ test.describe("หน้าผู้สร้าง (ต้องมี SUPABASE
 
   test("หน้าเรื่องมี 'โดย …' ลิงก์ไปหน้าผู้สร้าง ซึ่งรวมเฉพาะผลงานของคนนั้น", async ({ page }) => {
     await page.goto(`/title/${slugs[0]}`);
-    await page.getByRole("link", { name: author }).click();
+    // ลิงก์ผู้สร้างมี 2 จุด: บรรทัด "โดย …" (ตัวแรก) กับหัวข้อ "ผลงานอื่นของ …"
+    await page.getByRole("link", { name: author }).first().click();
     await expect(page).toHaveURL(/\/author\//);
     await expect(page.getByRole("heading", { name: author })).toBeVisible();
     await expect(page.getByText("2 เรื่อง")).toBeVisible();

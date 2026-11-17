@@ -18,3 +18,19 @@ describe("schedule", () => {
     expect(weekdayLabel(9)).toBe("");
   });
 });
+
+describe("thaiShortDate / isRecent", () => {
+  it("formats Thai short date in Bangkok time with Buddhist year", async () => {
+    const { thaiShortDate } = await import("./schedule");
+    expect(thaiShortDate("2026-11-17T10:00:00Z")).toBe("17 พ.ย. 69");
+    expect(thaiShortDate("2026-12-31T20:00:00Z")).toBe("1 ม.ค. 70"); // ข้ามเที่ยงคืนเวลาไทย
+  });
+  it("marks only episodes within the last 7 days (not future)", async () => {
+    const { isRecent } = await import("./schedule");
+    const now = Date.parse("2026-11-17T00:00:00Z");
+    expect(isRecent("2026-11-12T00:00:00Z", now)).toBe(true);
+    expect(isRecent("2026-11-01T00:00:00Z", now)).toBe(false);
+    expect(isRecent("2026-11-20T00:00:00Z", now)).toBe(false);
+    expect(isRecent(undefined, now)).toBe(false);
+  });
+});

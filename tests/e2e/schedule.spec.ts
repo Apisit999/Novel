@@ -69,7 +69,7 @@ test.describe("ตารางอัปเดตรายวัน + เรี�
 test("ตารางรายวัน: มีลิงก์ในเมนูและเปิดได้ครบ 7 วัน", async ({ page }) => {
   await page.goto("/schedule");
   await expect(page.getByRole("heading", { name: "ตารางอัปเดตรายวัน" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "เลือกวัน" }).getByRole("link")).toHaveCount(7);
+  await expect(page.getByRole("navigation", { name: "เลือกวัน" }).getByRole("link")).toHaveCount(8); // 7 วัน + แท็บ "จบแล้ว"
   // ลิงก์ไปตารางอยู่ในเมนูล่าง (มือถือ) หรือเมนูบน (จอ md ขึ้นไป) อย่างใดอย่างหนึ่งต้องเห็น
   await expect(
     page.getByRole("link", { name: /^(รายวัน|ตารางรายวัน)$/ }).filter({ visible: true }),

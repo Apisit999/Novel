@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { getContentType } from "@/content-types/registry";
 import {
   getTitle,
+  listAllTitles,
   type EpisodeSummary,
   listEpisodeLikeCounts,
   listEpisodes,
@@ -15,10 +16,11 @@ import { coverColor } from "@/features/catalog/cover";
 import { coverUrl } from "@/features/catalog/cover-url";
 import { serializeJsonLd, titleJsonLd } from "@/features/catalog/json-ld";
 import { publicEnv } from "@/lib/env";
-import { STATUS_LABEL } from "@/features/catalog/title-card";
+import { STATUS_LABEL, TitleCard, TitleGrid } from "@/features/catalog/title-card";
 import { compactCount } from "@/features/catalog/sort";
-import { weekdayLabel } from "@/features/catalog/schedule";
+import { isRecent, thaiShortDate, weekdayLabel } from "@/features/catalog/schedule";
 import { FavoriteButton, ReadButton } from "@/features/library/library-actions";
+import { isPaywallEnabled } from "@/features/access/paywall";
 import { Pagination } from "@/components/pagination";
 import { paginate, parsePage } from "@/lib/paginate";
 import { ShareLinks } from "@/features/catalog/share-links";
@@ -57,6 +59,7 @@ async function EpisodeToc({
   searchParams: PageProps<"/title/[slug]">["searchParams"];
 }) {
   const pg = paginate(episodes.length, parsePage((await searchParams).page), TOC_PER_PAGE);
+  const now = new Date().getTime(); // เซิร์ฟเวอร์เรนเดอร์ตามคำขอ (หน้านี้ไม่ได้แคชทั้งหน้า) จึงใช้เวลาปัจจุบันได้
   return (
     <>
       <ol className="mt-2 space-y-1">
@@ -65,6 +68,14 @@ async function EpisodeToc({
             <Link href={`/read/${slug}/${e.number}`} className="text-accent">
               {e.name}
             </Link>
+            {isRecent(e.publishedAt, now) && (
+              <span className="bg-accent text-accent-foreground ml-2 rounded-full px-2 py-0.5 text-xs font-bold">
+                ใหม่
+              </span>
+            )}
+            {e.publishedAt && (
+              <span className="text-muted ml-3 text-sm">{thaiShortDate(e.publishedAt)}</span>
+            )}
             {likes[e.number] > 0 && (
               <span className="text-muted ml-3 text-sm">
                 ♥ ถูกใจ {compactCount(likes[e.number])}
@@ -88,11 +99,17 @@ export default async function TitlePage({ params, searchParams }: PageProps<"/ti
   const title = await getTitle(slug);
   if (!title) notFound();
   const def = getContentType(title.type);
-  const [episodes, followers, likes] = await Promise.all([
+  const [episodes, followers, likes, allTitles, showPremium] = await Promise.all([
     listEpisodes(slug),
     listFollowerCounts(),
     listEpisodeLikeCounts(slug),
+    title.author ? listAllTitles() : Promise.resolve([]),
+    isPaywallEnabled(),
   ]);
+  // ผลงานอื่นของผู้สร้างคนเดียวกัน (สูงสุด 6 เรื่อง) — เหมือนส่วน "ผลงานอื่นของครีเอเตอร์" ของ WEBTOON
+  const moreByAuthor = allTitles
+    .filter((t) => t.author === title.author && t.slug !== slug)
+    .slice(0, 6);
   const followerCount = followers[slug] ?? 0;
   const image = coverUrl(title.coverKey);
 
@@ -179,6 +196,23 @@ export default async function TitlePage({ params, searchParams }: PageProps<"/ti
         <Suspense fallback={<p className="text-muted mt-2">กำลังโหลดสารบัญ…</p>}>
           <EpisodeToc slug={slug} episodes={episodes} likes={likes} searchParams={searchParams} />
         </Suspense>
+      )}
+      {moreByAuthor.length > 0 && title.author && (
+        <>
+          <h2 className="mt-10 text-xl font-semibold">
+            ผลงานอื่นของ{" "}
+            <Link href={`/author/${encodeURIComponent(title.author)}`} className="text-accent">
+              {title.author}
+            </Link>
+          </h2>
+          <div className="mt-4">
+            <TitleGrid>
+              {moreByAuthor.map((t) => (
+                <TitleCard key={t.slug} title={t} showPremium={showPremium} />
+              ))}
+            </TitleGrid>
+          </div>
+        </>
       )}
     </section>
   );
