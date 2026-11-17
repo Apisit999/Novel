@@ -17,6 +17,7 @@ import { STATUS_LABEL } from "@/features/catalog/title-card";
 import { compactCount } from "@/features/catalog/sort";
 import { weekdayLabel } from "@/features/catalog/schedule";
 import { FavoriteButton, ReadButton } from "@/features/library/library-actions";
+import { ShareLinks } from "@/features/catalog/share-links";
 
 export async function generateMetadata({ params }: PageProps<"/title/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -109,10 +110,24 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
               <ReadButton slug={slug} firstNumber={episodes[0].number} verb={def?.verb ?? "อ่าน"} />
             )}
             <FavoriteButton slug={slug} />
+            {episodes.length > 1 && (
+              <Link
+                href={`/read/${slug}/${episodes[episodes.length - 1].number}`}
+                className="border-border bg-surface text-foreground flex min-h-12 items-center rounded-full border px-6 font-bold no-underline"
+              >
+                ไปตอนล่าสุด
+              </Link>
+            )}
           </div>
+          <ShareLinks
+            url={`${publicEnv.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/title/${slug}`}
+            text={title.name}
+          />
         </div>
       </div>
-      <h2 className="mt-6 text-xl font-semibold">สารบัญ</h2>
+      <h2 className="mt-6 text-xl font-semibold">
+        สารบัญ{episodes.length > 0 && ` (${episodes.length} ${def?.episodeNoun ?? "ตอน"})`}
+      </h2>
       {episodes.length === 0 ? (
         <p className="text-muted mt-2">ยังไม่มี{def?.episodeNoun}</p>
       ) : (
