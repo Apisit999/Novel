@@ -31,6 +31,9 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
           <a href="/admin/export" className={ghostBtn}>
             สำรองนิยายทั้งหมด (.zip)
           </a>
+          <Link href="/admin/restore" className={ghostBtn}>
+            กู้คืนจากไฟล์สำรอง
+          </Link>
           <Link href="/admin/titles/new" className={ghostBtn}>
             + เรื่องใหม่
           </Link>
