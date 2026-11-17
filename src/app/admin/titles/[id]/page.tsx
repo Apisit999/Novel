@@ -77,7 +77,7 @@ export default async function EditTitlePage({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-bold">ตอน ({episodes?.length ?? 0})</h2>
           <div className="flex flex-wrap gap-3">
-            {(title.type === "novel" || title.type === "manga") && (
+            {(title.type === "novel" || title.type === "manga" || title.type === "video") && (
               <Link href={`/admin/titles/${id}/import`} className={ghostBtn}>
                 นำเข้าหลายตอน
               </Link>

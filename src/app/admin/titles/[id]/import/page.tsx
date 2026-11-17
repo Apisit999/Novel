@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/features/admin/guard";
 import { ImportWizard } from "@/features/import/import-wizard";
 import { MangaImport } from "@/features/import/manga-import";
+import { VideoImport } from "@/features/import/video-import";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -17,7 +18,8 @@ export default async function ImportPage({ params }: PageProps<"/admin/titles/[i
     .select("id, name, type")
     .eq("id", id)
     .maybeSingle();
-  if (!title || (title.type !== "novel" && title.type !== "manga")) notFound();
+  if (!title || (title.type !== "novel" && title.type !== "manga" && title.type !== "video"))
+    notFound();
   const { data: episodes } = await db
     .from("episodes")
     .select("number")
@@ -32,7 +34,15 @@ export default async function ImportPage({ params }: PageProps<"/admin/titles/[i
         <Link href={`/admin/titles/${id}`}>← {title.name}</Link>
       </p>
       <h1 className="mt-1 mb-2 text-2xl font-bold">นำเข้าหลายตอน</h1>
-      {title.type === "manga" ? (
+      {title.type === "video" ? (
+        <>
+          <p className="text-muted mb-8 max-w-3xl">
+            เลือกไฟล์วิดีโอหลายไฟล์ ตอนละไฟล์ (เลขตอนดึงจากชื่อไฟล์ แก้ได้) ระบบสร้างตอนและอัปโหลดให้ตามลำดับ —
+            ตอนที่เลขซ้ำกับที่มีอยู่จะถูกข้าม
+          </p>
+          <VideoImport titleId={id} existingNumbers={numbers} nextNumber={nextNumber} />
+        </>
+      ) : title.type === "manga" ? (
         <>
           <p className="text-muted mb-8 max-w-3xl">
             เลือกโฟลเดอร์ของเรื่อง ข้างในมีโฟลเดอร์ย่อยตอนละโฟลเดอร์ (เลขตอนดึงจากชื่อโฟลเดอร์ แก้ได้) ระบบสร้างตอน

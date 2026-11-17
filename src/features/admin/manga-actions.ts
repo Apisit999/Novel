@@ -258,7 +258,8 @@ export async function createImportEpisode(raw: {
     })
     .parse(raw);
   const title = await db.from("titles").select("type").eq("id", v.titleId).maybeSingle();
-  if (title.data?.type !== "manga") throw new Error("เรื่องนี้ไม่ใช่มังงะ");
+  if (title.data?.type !== "manga" && title.data?.type !== "video")
+    throw new Error("เรื่องนี้ต้องเป็นมังงะหรือวิดีโอ");
 
   const old = await db
     .from("episodes")
