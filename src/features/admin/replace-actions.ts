@@ -36,9 +36,7 @@ async function* eachBody(db: Db, titleId: string) {
     if (error) throw new Error("อ่านตอนไม่สำเร็จ");
     for (const e of data) {
       const nb = e.novel_bodies as unknown as
-        | { body_markdown: string }
-        | { body_markdown: string }[]
-        | null;
+        { body_markdown: string } | { body_markdown: string }[] | null;
       const body = (Array.isArray(nb) ? nb[0]?.body_markdown : nb?.body_markdown) ?? null;
       if (body !== null) yield { id: e.id, number: e.number, name: e.name, body };
     }

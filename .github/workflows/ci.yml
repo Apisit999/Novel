@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
 
       # ---- ตรวจโค้ด (ไม่ต้องใช้ฐานข้อมูล)
+      - name: ตรวจช่องโหว่ของไลบรารีที่ใช้จริง (ระดับ high ขึ้นไปทำให้ CI ล้ม)
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck

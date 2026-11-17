@@ -31,8 +31,7 @@ export function ReplaceForm({ titleId }: { titleId: string }) {
 
   async function doApply() {
     if (!preview) return;
-    if (!window.confirm(`แทนที่ ${preview.matches} จุดใน ${preview.episodes} ตอน? ย้อนกลับไม่ได้`))
-      return;
+    if (!window.confirm(`แทนที่ ${preview.matches} จุดใน ${preview.episodes} ตอน? ย้อนกลับไม่ได้`)) return;
     setBusy(true);
     setError("");
     try {

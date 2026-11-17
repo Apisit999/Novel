@@ -42,6 +42,7 @@ test.describe("บังคับยืนยันสองขั้นขอ�
     // เซิร์ฟเวอร์ตัวที่สอง (ใช้ build เดิม) ที่เปิดการบังคับ MFA — ตัวหลักของชุดทดสอบไม่เปิด จะได้ไม่กระทบเทสต์อื่น
     server = spawn("npx", ["next", "start", "-p", String(PORT)], {
       shell: true,
+      detached: process.platform !== "win32", // Linux/Mac: แยกกลุ่มโปรเซสไว้ฆ่าทั้งกลุ่มตอนจบ
       env: { ...process.env, ADMIN_REQUIRE_MFA: "true" },
       stdio: "ignore",
     });
@@ -56,7 +57,10 @@ test.describe("บังคับยืนยันสองขั้นขอ�
     throw new Error("เซิร์ฟเวอร์ MFA ไม่เริ่มทำงาน");
   });
   test.afterAll(() => {
-    if (server?.pid) spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"]);
+    if (!server?.pid) return;
+    if (process.platform === "win32")
+      spawnSync("taskkill", ["/pid", String(server.pid), "/T", "/F"]);
+    else process.kill(-server.pid, "SIGTERM");
   });
   test.beforeEach(async () => {
     user = await createTestUser();
