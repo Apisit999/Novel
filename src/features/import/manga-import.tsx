@@ -86,10 +86,16 @@ export function MangaImport({
                 contentType: converted[j].blob.type || undefined,
               });
             if (e) throw new Error(`ตอน ${g.number}: อัปโหลดไม่สำเร็จ (${e.message})`);
-            reg.push({ key: targets[j].key, width: converted[j].width, height: converted[j].height });
+            reg.push({
+              key: targets[j].key,
+              width: converted[j].width,
+              height: converted[j].height,
+            });
           }
           await registerPages(episodeId, reg);
-          setProgress(`ตอน ${g.number}: ${Math.min(i + BATCH, g.files.length)}/${g.files.length} หน้า`);
+          setProgress(
+            `ตอน ${g.number}: ${Math.min(i + BATCH, g.files.length)}/${g.files.length} หน้า`,
+          );
         }
         setProgress("");
         say(`ตอน ${g.number}: เสร็จ ${g.files.length} หน้า`);
@@ -176,7 +182,11 @@ export function MangaImport({
           </button>
         </>
       )}
-      {progress && <p role="status" className="font-bold">{progress}</p>}
+      {progress && (
+        <p role="status" className="font-bold">
+          {progress}
+        </p>
+      )}
       {log.length > 0 && (
         <ul className="text-sm">
           {log.map((l, i) => (
