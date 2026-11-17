@@ -28,6 +28,37 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string;
+          admin_email: string | null;
+          admin_id: string | null;
+          at: string;
+          detail: Json;
+          id: number;
+          target: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          action: string;
+          admin_email?: string | null;
+          admin_id?: string | null;
+          at?: string;
+          detail?: Json;
+          id?: number;
+          target?: string | null;
+        };
+        Update: {
+          action?: string;
+          admin_email?: string | null;
+          admin_id?: string | null;
+          at?: string;
+          detail?: Json;
+          id?: number;
+          target?: string | null;
+        };
+        Relationships: [];
+      };
       app_settings: {
         Row: {
           key: string;

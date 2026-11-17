@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContentType } from "@/content-types/registry";
 import {
   getTitle,
+  type EpisodeSummary,
   listEpisodeLikeCounts,
   listEpisodes,
   listFollowerCounts,
@@ -17,6 +19,8 @@ import { STATUS_LABEL } from "@/features/catalog/title-card";
 import { compactCount } from "@/features/catalog/sort";
 import { weekdayLabel } from "@/features/catalog/schedule";
 import { FavoriteButton, ReadButton } from "@/features/library/library-actions";
+import { Pagination } from "@/components/pagination";
+import { paginate, parsePage } from "@/lib/paginate";
 import { ShareLinks } from "@/features/catalog/share-links";
 
 export async function generateMetadata({ params }: PageProps<"/title/[slug]">): Promise<Metadata> {
@@ -38,7 +42,48 @@ export async function generateMetadata({ params }: PageProps<"/title/[slug]">): 
   };
 }
 
-export default async function TitlePage({ params }: PageProps<"/title/[slug]">) {
+const TOC_PER_PAGE = 100;
+
+/** สารบัญแบ่งหน้า (นิยายหลายร้อยตอน): ?page=N — อ่าน searchParams ในส่วนนี้เท่านั้นเพื่อให้ตัวหน้าหลักยังพรีเรนเดอร์ได้ */
+async function EpisodeToc({
+  slug,
+  episodes,
+  likes,
+  searchParams,
+}: {
+  slug: string;
+  episodes: EpisodeSummary[];
+  likes: Record<number, number>;
+  searchParams: PageProps<"/title/[slug]">["searchParams"];
+}) {
+  const pg = paginate(episodes.length, parsePage((await searchParams).page), TOC_PER_PAGE);
+  return (
+    <>
+      <ol className="mt-2 space-y-1">
+        {episodes.slice(pg.start, pg.end).map((e) => (
+          <li key={e.number}>
+            <Link href={`/read/${slug}/${e.number}`} className="text-accent">
+              {e.name}
+            </Link>
+            {likes[e.number] > 0 && (
+              <span className="text-muted ml-3 text-sm">
+                ♥ ถูกใจ {compactCount(likes[e.number])}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+      <Pagination
+        page={pg.page}
+        totalPages={pg.totalPages}
+        label="แบ่งหน้าสารบัญ"
+        href={(n) => (n > 1 ? `/title/${slug}?page=${n}` : `/title/${slug}`)}
+      />
+    </>
+  );
+}
+
+export default async function TitlePage({ params, searchParams }: PageProps<"/title/[slug]">) {
   const { slug } = await params;
   const title = await getTitle(slug);
   if (!title) notFound();
@@ -131,20 +176,9 @@ export default async function TitlePage({ params }: PageProps<"/title/[slug]">) 
       {episodes.length === 0 ? (
         <p className="text-muted mt-2">ยังไม่มี{def?.episodeNoun}</p>
       ) : (
-        <ol className="mt-2 space-y-1">
-          {episodes.map((e) => (
-            <li key={e.number}>
-              <Link href={`/read/${slug}/${e.number}`} className="text-accent">
-                {e.name}
-              </Link>
-              {likes[e.number] > 0 && (
-                <span className="text-muted ml-3 text-sm">
-                  ♥ ถูกใจ {compactCount(likes[e.number])}
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
+        <Suspense fallback={<p className="text-muted mt-2">กำลังโหลดสารบัญ…</p>}>
+          <EpisodeToc slug={slug} episodes={episodes} likes={likes} searchParams={searchParams} />
+        </Suspense>
       )}
     </section>
   );

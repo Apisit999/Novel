@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { auditLog } from "@/features/admin/audit";
 import { requireAdmin } from "@/features/admin/guard";
 import { buildInfoJson, buildNovelText, safeFileStem } from "@/features/export/build-export";
 import { listNovelIds, loadNovel } from "@/features/export/load-novels";
@@ -9,7 +10,8 @@ import { listNovelIds, loadNovel } from "@/features/export/load-novels";
  * <slug>/translations/<ภาษา>.md (คำแปลที่มี)
  */
 export async function GET() {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const zip = new JSZip();
   const used = new Set<string>();
 
@@ -37,6 +39,7 @@ export async function GET() {
   }
   if (used.size === 0) zip.file("README.txt", "ยังไม่มีนิยายในระบบ\n");
 
+  await auditLog(ctx, "export.all", undefined, { novels: used.size });
   const data = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
   const stamp = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10); // วันที่ไทย
   return new Response(Buffer.from(data), {

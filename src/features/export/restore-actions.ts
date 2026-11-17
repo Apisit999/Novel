@@ -2,6 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { z } from "zod";
+import { auditLog } from "@/features/admin/audit";
 import { requireAdmin } from "@/features/admin/guard";
 import { countWords, slugSchema } from "@/features/admin/schemas";
 import { MAX_CHAPTER_CHARS } from "@/features/import/split-chapters";
@@ -46,7 +47,8 @@ export interface RestoreTitleResult {
 
 /** หาเรื่องตาม slug; ไม่มีก็สร้างตามข้อมูลสำรอง (มีอยู่แล้ว = เติมเฉพาะตอนที่ขาด ไม่แก้ข้อมูลเรื่องเดิม) */
 export async function restoreTitle(raw: unknown): Promise<RestoreTitleResult> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const p = titleSchema.safeParse(raw);
   if (!p.success) return { error: p.error.issues[0]?.message ?? "ข้อมูลเรื่องไม่ถูกต้อง" };
   const t = p.data;
@@ -86,6 +88,7 @@ export async function restoreTitle(raw: unknown): Promise<RestoreTitleResult> {
       await db.from("title_tags").insert(found.map((x) => ({ title_id: data.id, tag_id: x.id })));
     }
   }
+  await auditLog(ctx, "restore.title", data.id, { slug: t.slug });
   updateTag("catalog");
   return { titleId: data.id, created: true };
 }
@@ -99,7 +102,8 @@ export interface RestoreBatchResult {
 
 /** กู้ตอนเป็นชุด (≤ 20 ตอน) พร้อมสถานะ/สิทธิ์/เวลาเผยแพร่/คำแปลตามไฟล์สำรอง; ตอนที่เลขซ้ำถูกข้าม ไม่เขียนทับ */
 export async function restoreChapterBatch(raw: unknown): Promise<RestoreBatchResult> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const empty = { created: 0, skipped: [] as number[] };
   const p = z
     .object({ titleId: z.string().uuid(), chapters: z.array(chapterSchema).min(1).max(20) })
@@ -162,6 +166,7 @@ export async function restoreChapterBatch(raw: unknown): Promise<RestoreBatchRes
     const r = await db.from("novel_translations").upsert(tr);
     if (r.error) return { created: todo.length, skipped, error: "บันทึกคำแปลไม่สำเร็จ" };
   }
+  await auditLog(ctx, "restore.episodes", titleId, { created: todo.length });
   updateTag("catalog");
   return { created: todo.length, skipped };
 }

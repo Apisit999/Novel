@@ -2,6 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { z } from "zod";
+import { auditLog } from "./audit";
 import { requireAdmin } from "./guard";
 import { firstSnippet, replaceLiteral } from "./replace-text";
 import { countWords } from "./schemas";
@@ -79,7 +80,8 @@ export async function previewReplace(raw: unknown): Promise<ReplacePreview> {
 export async function applyReplace(
   raw: unknown,
 ): Promise<{ episodes: number; matches: number; error?: string }> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const p = inputSchema.safeParse(raw);
   if (!p.success) return { episodes: 0, matches: 0, error: p.error.issues[0]?.message };
   const { titleId, find, replacement, matchCase } = p.data;
@@ -107,6 +109,7 @@ export async function applyReplace(
       error: `${e instanceof Error ? e.message : "แทนที่ไม่สำเร็จ"} (แก้ไปแล้ว ${episodes} ตอน)`,
     };
   }
+  await auditLog(ctx, "replace.apply", titleId, { episodes, matches, findLength: find.length });
   updateTag("catalog");
   return { episodes, matches };
 }

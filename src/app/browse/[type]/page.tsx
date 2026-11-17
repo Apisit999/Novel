@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
+import { Pagination } from "@/components/pagination";
+import { paginate, parsePage } from "@/lib/paginate";
 import { isPaywallEnabled } from "@/features/access/paywall";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -34,6 +36,8 @@ export async function generateMetadata({ params }: PageProps<"/browse/[type]">):
   };
 }
 
+const PER_PAGE = 24;
+
 async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
   const [{ type }, query] = await Promise.all([props.params, props.searchParams]);
   const def = getContentType(type);
@@ -43,6 +47,7 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
   const status = parseStatus(query.status);
   const sort = parseSort(query.sort);
   const hideAdult = query.adult === "hide";
+  const requestedPage = parsePage(query.page);
   const showPremium = await isPaywallEnabled();
   const [found, tags, views, followers] = await Promise.all([
     listTitles(def.id, { tag, status, hideAdult }),
@@ -50,7 +55,9 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
     listViewCounts(),
     listFollowerCounts(),
   ]);
-  const titles = sortTitles(found, sort, views);
+  const sorted = sortTitles(found, sort, views);
+  const pg = paginate(sorted.length, requestedPage, PER_PAGE);
+  const titles = sorted.slice(pg.start, pg.end);
   const metaOf = (slug: string) => {
     const parts = [];
     if (views[slug])
@@ -59,7 +66,13 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
     return parts.join(" · ") || undefined;
   };
 
-  const href = (next: { tag?: string; status?: string; sort?: string; adult?: string }) => {
+  const href = (next: {
+    tag?: string;
+    status?: string;
+    sort?: string;
+    adult?: string;
+    page?: number;
+  }) => {
     const p = new URLSearchParams();
     const t = "tag" in next ? next.tag : tag;
     const s = "status" in next ? next.status : status;
@@ -69,6 +82,7 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
     if (s) p.set("status", s);
     if (o && o !== "latest") p.set("sort", o);
     if (a) p.set("adult", a);
+    if (next.page && next.page > 1) p.set("page", String(next.page)); // เปลี่ยนตัวกรอง/เรียงแล้วกลับหน้า 1 เสมอ
     const qs = p.toString();
     return `/browse/${def.id}${qs ? `?${qs}` : ""}`;
   };
@@ -150,6 +164,7 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
               <TitleCard key={t.slug} title={t} showPremium={showPremium} meta={metaOf(t.slug)} />
             ))}
           </TitleGrid>
+          <Pagination page={pg.page} totalPages={pg.totalPages} href={(n) => href({ page: n })} />
         </div>
       )}
     </>

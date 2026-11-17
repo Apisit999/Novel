@@ -4,6 +4,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import { removeObjects, VIDEO_BUCKET } from "@/server/storage";
 import { schedulePublishAt, validScheduleOptions } from "@/features/import/schedule";
+import { auditLog } from "./audit";
 import { requireAdmin } from "./guard";
 import { thaiLocalToIso } from "./schemas";
 
@@ -43,7 +44,8 @@ const chunks = <T>(xs: T[], n: number): T[][] =>
  * ใช้เฉพาะตอนที่เป็นของเรื่องนี้จริง (กรองตาม title_id ก่อนเสมอ กันส่ง id ของเรื่องอื่นมา)
  */
 export async function bulkUpdateEpisodes(raw: unknown): Promise<BulkResult> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) return { done: 0, error: "ข้อมูลไม่ถูกต้อง" };
   const { titleId, ids, op } = parsed.data;
@@ -117,6 +119,7 @@ export async function bulkUpdateEpisodes(raw: unknown): Promise<BulkResult> {
     for (const part of chunks(videoKeys, CHUNK)) await removeObjects(db, part, VIDEO_BUCKET);
   }
 
+  await auditLog(ctx, `episodes.bulk.${op.kind}`, titleId, { count: owned.length });
   updateTag("catalog");
   return { done: owned.length };
 }

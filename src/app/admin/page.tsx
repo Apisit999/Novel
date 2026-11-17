@@ -2,6 +2,10 @@ import Link from "next/link";
 import { getContentType } from "@/content-types/registry";
 import { requireAdmin } from "@/features/admin/guard";
 import { Badge, ghostBtn } from "@/features/admin/ui";
+import { Pagination } from "@/components/pagination";
+import { paginate, parsePage } from "@/lib/paginate";
+
+const PER_PAGE = 30;
 
 export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
   const [{ db }, query] = await Promise.all([requireAdmin(), searchParams]);
@@ -14,14 +18,35 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
     typeof query.type === "string" && ["novel", "manga", "video"].includes(query.type)
       ? query.type
       : "";
-  let req = db
-    .from("titles")
-    .select("id, name, slug, type, published, status, episodes(count)")
-    .order("updated_at", { ascending: false });
-  if (q) req = req.or(`name.ilike.%${q}%,slug.ilike.%${q}%,author.ilike.%${q}%`);
-  if (type) req = req.eq("type", type as "novel" | "manga" | "video");
-  const { data, error } = await req;
-  if (error) throw new Error(`อ่านรายการเรื่องไม่สำเร็จ: ${error.message}`);
+  const fetchPage = (page: number) => {
+    let req = db
+      .from("titles")
+      .select("id, name, slug, type, published, status, episodes(count)", { count: "exact" })
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true }) // ลำดับคงที่เมื่อเวลาเท่ากัน ไม่งั้นแบ่งหน้าแล้วรายการซ้ำ/ตกหล่น
+      .range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+    if (q) req = req.or(`name.ilike.%${q}%,slug.ilike.%${q}%,author.ilike.%${q}%`);
+    if (type) req = req.eq("type", type as "novel" | "manga" | "video");
+    return req;
+  };
+  const requested = parsePage(query.page);
+  const first = await fetchPage(requested);
+  if (first.error) throw new Error(`อ่านรายการเรื่องไม่สำเร็จ: ${first.error.message}`);
+  const pg = paginate(first.count ?? 0, requested, PER_PAGE);
+  let rows = first.data ?? [];
+  if (rows.length === 0 && pg.page !== requested) {
+    // ขอหน้าเกินช่วง → ดึงหน้าสุดท้ายแทน
+    const last = await fetchPage(pg.page);
+    if (last.error) throw new Error(`อ่านรายการเรื่องไม่สำเร็จ: ${last.error.message}`);
+    rows = last.data ?? [];
+  }
+  const pageHref = (n: number) => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (type) p.set("type", type);
+    if (n > 1) p.set("page", String(n));
+    return `/admin${p.size ? `?${p}` : ""}`;
+  };
 
   return (
     <section>
@@ -31,6 +56,9 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
           <a href="/admin/export" className={ghostBtn}>
             สำรองนิยายทั้งหมด (.zip)
           </a>
+          <Link href="/admin/audit" className={ghostBtn}>
+            ประวัติการใช้งาน
+          </Link>
           <Link href="/admin/restore" className={ghostBtn}>
             กู้คืนจากไฟล์สำรอง
           </Link>
@@ -80,13 +108,13 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
         )}
       </form>
 
-      {data.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-muted mt-6">
           {q || type ? "ไม่พบเรื่องที่ตรงเงื่อนไข" : "ยังไม่มีเรื่อง — กด “+ เรื่องใหม่” เพื่อเริ่มลงเรื่องแรก"}
         </p>
       ) : (
         <ul className="mt-6 flex flex-col gap-3">
-          {data.map((t) => (
+          {rows.map((t) => (
             <li key={t.id}>
               <Link
                 href={`/admin/titles/${t.id}`}
@@ -105,6 +133,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
           ))}
         </ul>
       )}
+      <Pagination page={pg.page} totalPages={pg.totalPages} href={pageHref} />
     </section>
   );
 }

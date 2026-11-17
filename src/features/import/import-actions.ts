@@ -2,6 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { z } from "zod";
+import { auditLog } from "@/features/admin/audit";
 import { requireAdmin } from "@/features/admin/guard";
 import { countWords, thaiLocalToIso } from "@/features/admin/schemas";
 import { MAX_CHAPTER_CHARS } from "./split-chapters";
@@ -38,7 +39,8 @@ export interface ImportBatchResult {
  * ต่อชุด: ถ้าสร้างตอนไม่สำเร็จ จะไม่เขียนเนื้อหาของชุดนั้น
  */
 export async function importChapterBatch(raw: unknown): Promise<ImportBatchResult> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const empty: ImportBatchResult = { created: 0, overwritten: 0, skipped: [] };
 
   const parsed = batchSchema.safeParse(raw);
@@ -132,6 +134,10 @@ export async function importChapterBatch(raw: unknown): Promise<ImportBatchResul
     }
   }
 
+  await auditLog(ctx, "episodes.import", titleId, {
+    created: toCreate.length,
+    overwritten: onConflict === "overwrite" ? toOverwrite.length : 0,
+  });
   updateTag("catalog");
   return {
     created: toCreate.length,

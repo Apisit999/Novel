@@ -4,6 +4,7 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { removeObjects, VIDEO_BUCKET } from "@/server/storage";
+import { auditLog } from "./audit";
 import { requireAdmin } from "./guard";
 import { countWords, episodeSchema, thaiLocalToIso, titleSchema } from "./schemas";
 
@@ -30,7 +31,8 @@ const tagSlug = (name: string) => name.toLowerCase().replace(/\s+/g, "-");
 // ---------------------------------------------------------------- เรื่อง
 
 export async function saveTitle(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
 
   const idRaw = String(formData.get("id") ?? "");
   const id = idRaw ? uuid.safeParse(idRaw) : null;
@@ -95,12 +97,14 @@ export async function saveTitle(_prev: FormState, formData: FormData): Promise<F
     await db.from("title_tags").insert(toAdd.map((tag_id) => ({ title_id: titleId, tag_id })));
   }
 
+  await auditLog(ctx, id?.success ? "title.update" : "title.create", titleId);
   refreshCatalog();
   redirect(`/admin/titles/${titleId}?saved=1`);
 }
 
 export async function deleteTitle(formData: FormData) {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const id = uuid.safeParse(formData.get("id"));
   if (!id.success) redirect("/admin");
   // ไฟล์รูปมังงะใน Storage ไม่ถูก cascade ตามแถว → เก็บรายชื่อไฟล์ก่อนลบ แล้วลบไฟล์ทิ้งด้วย (กันขยะค้าง)
@@ -115,6 +119,7 @@ export async function deleteTitle(formData: FormData) {
   // ลบแล้ว FK cascade ลบตอน เนื้อหา คำแปล ความคืบหน้า และรายการโปรดที่อ้างเรื่องนี้ทั้งหมด
   const { error } = await db.from("titles").delete().eq("id", id.data);
   if (error) redirect(`/admin/titles/${id.data}?error=delete`);
+  await auditLog(ctx, "title.delete", id.data, { episodes: epIds.length });
   await removeObjects(
     db,
     (pages.data ?? []).map((p) => p.image_key),
@@ -131,7 +136,8 @@ export async function deleteTitle(formData: FormData) {
 // ---------------------------------------------------------------- ตอน (นิยาย)
 
 export async function saveEpisode(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
 
   const titleId = uuid.safeParse(formData.get("titleId"));
   if (!titleId.success) return { error: "รหัสเรื่องไม่ถูกต้อง" };
@@ -197,6 +203,7 @@ export async function saveEpisode(_prev: FormState, formData: FormData): Promise
     if (error) return { error: dbMessage(error, "คำแปล") };
   }
 
+  await auditLog(ctx, "episode.save", id, { number: v.number });
   refreshCatalog();
   if (formData.get("after") === "next") {
     // ลงต่อเนื่อง: ไปตอนถัดไปทันที ถือสถานะ/สิทธิ์เดิมไปด้วย (เวลาตั้งเผยแพร่ไม่ถือไป เพราะแต่ละตอนต่างเวลากัน)
@@ -208,7 +215,8 @@ export async function saveEpisode(_prev: FormState, formData: FormData): Promise
 }
 
 export async function deleteEpisode(formData: FormData) {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const titleId = uuid.safeParse(formData.get("titleId"));
   const id = uuid.safeParse(formData.get("id"));
   if (!id.success || !titleId.success) redirect("/admin");
@@ -216,6 +224,7 @@ export async function deleteEpisode(formData: FormData) {
   const video = await db.from("video_assets").select("stream_uid").eq("episode_id", id.data);
   const { error } = await db.from("episodes").delete().eq("id", id.data);
   if (!error) {
+    await auditLog(ctx, "episode.delete", id.data);
     await removeObjects(
       db,
       (video.data ?? []).map((v) => v.stream_uid),
@@ -236,7 +245,8 @@ export async function deleteEpisode(formData: FormData) {
  * ผลข้างเคียง: ลิงก์ /read/<เรื่อง>/<เลข> ของสองตอนนี้สลับกันตามลำดับใหม่
  */
 export async function moveEpisode(formData: FormData) {
-  const { db } = await requireAdmin();
+  const ctx = await requireAdmin();
+  const { db } = ctx;
   const titleId = uuid.safeParse(formData.get("titleId"));
   const id = uuid.safeParse(formData.get("id"));
   const dir = formData.get("dir");
