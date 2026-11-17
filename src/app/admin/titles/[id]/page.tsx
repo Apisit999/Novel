@@ -91,6 +91,9 @@ export default async function EditTitlePage({
                 <a href={`/admin/titles/${id}/export?format=txt`} className={ghostBtn}>
                   ส่งออก .txt
                 </a>
+                <Link href={`/admin/titles/${id}/replace`} className={ghostBtn}>
+                  ค้นหา-แทนที่
+                </Link>
               </>
             )}
             <Link href={`/admin/titles/${id}/episodes/new`} className={ghostBtn}>
