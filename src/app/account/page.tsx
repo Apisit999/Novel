@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { deleteAccount, signOut } from "@/features/auth/actions";
@@ -27,6 +28,12 @@ async function AccountBody({
           </p>
         </div>
       </div>
+
+      <p>
+        <Link href="/account/security" className="text-accent font-bold">
+          ความปลอดภัยของบัญชี (ยืนยันสองขั้น)
+        </Link>
+      </p>
 
       <form action={signOut}>
         <button

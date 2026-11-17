@@ -28,6 +28,8 @@ const serverSchema = z.object({
   EMAIL_LOGIN_ENABLED: flag(false),
   // ความลับของ POST /api/revalidate (เคลียร์แคชหลังแก้ฐานข้อมูลโดยตรง) — ไม่ตั้ง = endpoint ปิด (404)
   REVALIDATE_SECRET: z.string().min(16).optional(),
+  // บังคับแอดมินยืนยันสองขั้น (TOTP) ก่อนเข้าหลังบ้าน — ตั้ง true หลังแอดมินทุกคนลงทะเบียนแอปยืนยันที่ /account/security แล้ว
+  ADMIN_REQUIRE_MFA: flag(false),
 });
 
 export function parsePublicEnv(source: Record<string, string | undefined>) {

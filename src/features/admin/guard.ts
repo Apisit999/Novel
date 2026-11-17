@@ -1,6 +1,8 @@
 import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
+import { adminMfaGate } from "@/features/auth/mfa-gate";
+import { getFlags } from "@/lib/flags";
 import { authDb, getCurrentUser } from "@/server/auth-db";
 
 /**
@@ -18,5 +20,12 @@ export const requireAdmin = cache(async () => {
   const db = await authDb();
   const { data } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
   if (data?.role !== "admin") notFound();
+
+  // ยืนยันสองขั้น (เปิดด้วย ADMIN_REQUIRE_MFA=true): บัญชี Google ถูกยึดเมื่อไหร่ก็เข้าหลังบ้านไม่ได้ถ้าไม่มีแอปยืนยัน
+  if (getFlags().adminRequireMfa) {
+    const { data: aal } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
+    const gate = adminMfaGate(true, aal?.currentLevel, aal?.nextLevel);
+    if (gate !== "ok") redirect(`/account/security?${gate}=1&next=/admin`);
+  }
   return { user, db };
 });

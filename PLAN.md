@@ -429,3 +429,12 @@ if user มี subscription active     → อนุญาต
 
 - ℹ️ **เคลียร์แคชหลังแก้ฐานข้อมูลตรง ๆ:** `POST /api/revalidate` พร้อมหัว `x-revalidate-secret` (ตั้ง `REVALIDATE_SECRET` ≥16 ตัวอักษร; ไม่ตั้ง = endpoint ปิด) — แคชรายการเรื่อง/ตอน 1 นาที หลังบ้านเคลียร์ให้เองอยู่แล้ว แต่การนำเข้าข้อมูล/สคริปต์/เทสต์ที่เขียนตรงต้องเรียกเอง
 - ⚠️ **มังงะ ก่อนเปิดตัว:** (1) ลิงก์รูปอายุ 2 ชม. — ผู้อ่านเปิดแช่ไว้เกินนั้นแล้วรูปที่ยังไม่โหลดจะเสีย ต้องรีโหลด (2) ตอน/เรื่อง premium เมื่อเปิดสมาชิกจริง (เฟส 7) ต้องออกลิงก์ในนามผู้ใช้ที่ล็อกอิน ไม่ใช่ผู้เยี่ยมชม (3) ต้นทุนทราฟฟิก Supabase Storage (เทียบ R2 ที่ไม่คิดค่า egress) ตรวจก่อนมีผู้อ่านเยอะ (4) ข้อมูลตัวอย่างมังงะใน `seed.sql` ชี้ไฟล์ที่ไม่มีจริง — ตัวอ่านแสดง "ยังไม่มีรูป" จนกว่าจะอัปโหลดผ่านหลังบ้าน
+
+### ความปลอดภัย (17 พ.ย. 2026)
+
+- **ไม่มีรหัสผ่านในระบบ**: ล็อกอินด้วย Google (หลัก) หรือ magic link เท่านั้น → ไม่มีรหัสผ่านให้เดา/รั่ว/ยัดซ้ำ (credential stuffing); ตัวจำกัดความถี่ส่งอีเมลเป็นของ Supabase Auth
+- **หลังบ้านหลายชั้น**: proxy (ชั้นนอก) → `requireAdmin()` ในทุกหน้า/Server Action/route ส่งออก → RLS (policy `*_admin`) ; ผู้ใช้ทั่วไปได้ 404 ไม่รู้ว่ามีหลังบ้าน
+- **ยืนยันสองขั้น (TOTP) ของแอดมิน**: ตั้งที่ `/account/security`; บังคับเมื่อ `ADMIN_REQUIRE_MFA=true` (ค่าเริ่มต้นปิด เพื่อไม่ให้ล็อกตัวเอง — ให้แอดมินทุกคนตั้งแอปยืนยันก่อนแล้วจึงเปิด); ตัวตัดสิน `src/features/auth/mfa-gate.ts` (fail-closed); e2e `mfa.spec.ts`, `admin-mfa-gate.spec.ts` (เปิดเซิร์ฟเวอร์ตัวที่สองบนพอร์ต 3101)
+- **HTTP headers** (`next.config.ts`): CSP (script จากโดเมนเรา + 'unsafe-inline' เพราะยังไม่ใช้ nonce, object-src none, base-uri/form-action self, frame-ancestors none, รูป/สื่อ/เชื่อมต่อได้เฉพาะ Supabase ของเรา), HSTS 2 ปี, COOP same-origin, X-Frame-Options, nosniff, Referrer/Permissions-Policy. **อย่าใส่ `upgrade-insecure-requests`** — Safari ใช้กับ http://localhost แล้วสคริปต์พัง
+- ตรวจแล้ว: `npm audit --omit=dev` = 0 ช่องโหว่; redirect หลังล็อกอินผ่าน `safeNext`; `/api/revalidate` เทียบรหัสแบบเวลาคงที่; service role key อยู่ฝั่งเซิร์ฟเวอร์เท่านั้น
+- **งานต่อยอด**: CSP แบบ nonce (ตัด 'unsafe-inline'), บันทึกการกระทำของแอดมิน (audit log), เปิด CAPTCHA/จำกัดความถี่ที่ Supabase dashboard, เปิดบังคับ MFA ที่ Supabase, รัน `npm audit` ใน CI ทุกครั้ง, ตรวจ RLS ของตารางใหม่ทุกครั้งที่เพิ่ม migration (`npm run test:db`)

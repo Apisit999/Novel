@@ -52,6 +52,18 @@ test("ทุกหน้าส่ง security headers พื้นฐาน แ�
     expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
     expect(h["permissions-policy"]).toContain("camera=()");
     expect(h["x-powered-by"]).toBeUndefined();
+    expect(h["strict-transport-security"]).toContain("max-age=");
+    expect(h["cross-origin-opener-policy"]).toBe("same-origin");
+    const csp = h["content-security-policy"] ?? "";
+    for (const d of [
+      "default-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ]) {
+      expect(csp).toContain(d);
+    }
   }
 });
 

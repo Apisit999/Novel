@@ -11,5 +11,6 @@ export function getFlags() {
   return {
     signupEnabled: env.SIGNUP_ENABLED,
     emailLoginEnabled: env.EMAIL_LOGIN_ENABLED,
+    adminRequireMfa: env.ADMIN_REQUIRE_MFA,
   };
 }
