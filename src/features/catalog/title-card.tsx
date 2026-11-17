@@ -17,6 +17,7 @@ export function TitleCard({
   showPremium = false,
   showType = true,
   meta,
+  recent = false,
 }: {
   title: TitleSummary;
   /** แสดงป้าย premium เฉพาะเมื่อเปิด paywall (ช่วงเปิดฟรีทุกอย่างเปิดอ่านได้ ไม่ควรมีป้ายหลอก) */
@@ -25,6 +26,8 @@ export function TitleCard({
   showType?: boolean;
   /** ข้อความสถิติใต้ชื่อ เช่น "ยอดดู 1.2K" — ต้องมีป้ายบอกความหมายของตัวเลขเสมอ */
   meta?: string;
+  /** มีตอนใหม่ภายใน 7 วัน → ติดป้าย "อัป" */
+  recent?: boolean;
 }) {
   const label = getContentType(title.type)?.label ?? "";
   const image = coverUrl(title.coverKey);
@@ -49,6 +52,11 @@ export function TitleCard({
           </span>
         ) : (
           <span />
+        )}
+        {recent && (
+          <span className="bg-accent text-accent-foreground absolute bottom-3 left-3 rounded-full px-2.5 py-0.5 text-sm font-bold">
+            อัป
+          </span>
         )}
         {title.rating !== "all" && (
           <span

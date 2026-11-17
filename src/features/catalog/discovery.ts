@@ -81,3 +81,14 @@ export function topTagRows<T extends { tags: string[] }>(
     .slice(0, maxRows)
     .map(([tag, list]) => ({ tag, titles: list.slice(0, perRow) }));
 }
+
+/** slug ของเรื่องที่มีตอนออกภายใน days วันก่อน now (ใช้ติดป้าย "อัป") */
+export function recentSlugs(stamps: EpisodeStamp[], now: number, days = 7): string[] {
+  const cutoff = now - days * 86_400_000;
+  const out = new Set<string>();
+  for (const { slug, at } of stamps) {
+    const t = Date.parse(at);
+    if (Number.isFinite(t) && t >= cutoff && t <= now) out.add(slug);
+  }
+  return [...out];
+}

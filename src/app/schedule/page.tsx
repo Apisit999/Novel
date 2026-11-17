@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { isPaywallEnabled } from "@/features/access/paywall";
-import { listAllTitles } from "@/features/catalog/catalog";
+import { listAllTitles, listRecentSlugs } from "@/features/catalog/catalog";
 import { bangkokWeekday, parseWeekday, WEEKDAYS, weekdayLabel } from "@/features/catalog/schedule";
 import { Pagination } from "@/components/pagination";
 import { paginate, parsePage } from "@/lib/paginate";
@@ -21,7 +21,12 @@ async function Schedule({ props }: { props: PageProps<"/schedule"> }) {
   const today = bangkokWeekday(new Date());
   const done = query.day === "done"; // แท็บ "จบแล้ว" (เหมือนแท็บจบแล้วของ WEBTOON)
   const day = parseWeekday(query.day) ?? today;
-  const [all, showPremium] = await Promise.all([listAllTitles(), isPaywallEnabled()]);
+  const [all, showPremium, recentList] = await Promise.all([
+    listAllTitles(),
+    isPaywallEnabled(),
+    listRecentSlugs(),
+  ]);
+  const recent = new Set(recentList);
   // เรื่องที่จบแล้วไม่อยู่ในตาราง (ไม่มีตอนใหม่ให้รอ)
   const matched = done
     ? all.filter((t) => t.status === "completed").sort((a, b) => a.name.localeCompare(b.name, "th"))
@@ -71,6 +76,7 @@ async function Schedule({ props }: { props: PageProps<"/schedule"> }) {
                 key={t.slug}
                 title={t}
                 showPremium={showPremium}
+                recent={recent.has(t.slug)}
                 meta={done ? "จบแล้ว" : `ทุกวัน${weekdayLabel(day)}`}
               />
             ))}

@@ -4,7 +4,13 @@ import type { Access, EpisodeAccess } from "@/features/access/can-access";
 import { adminDb } from "@/server/admin-db";
 import { publicDb } from "@/server/db";
 import { activePins, type Pin } from "@/features/home/pins";
-import { latestSlugs, pickFeatured, pickFeaturedList, resolveSlugs } from "./discovery";
+import {
+  latestSlugs,
+  pickFeatured,
+  pickFeaturedList,
+  recentSlugs,
+  resolveSlugs,
+} from "./discovery";
 import { bangkokDayAgo, rankMovement, trendingSlugs, type RankMove } from "./ranking";
 import { signedReadUrls, VIDEO_BUCKET } from "@/server/storage";
 import { searchIn } from "./search";
@@ -222,6 +228,26 @@ export async function searchTitles(query: string): Promise<TitleSummary[]> {
 export async function listLatestUpdated(limit = 10): Promise<TitleSummary[]> {
   const slugs = await latestEpisodeSlugs();
   return resolveSlugs(slugs, await listAllTitles()).slice(0, limit);
+}
+
+/** เรื่องที่มีตอนใหม่ภายใน 7 วัน (ไว้ติดป้าย "อัป" บนการ์ด) */
+export async function listRecentSlugs(): Promise<string[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog");
+
+  const rows = must(
+    await publicDb()
+      .from("episodes")
+      .select("created_at, publish_at, titles!inner(slug)")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    "ตอนล่าสุด",
+  );
+  return recentSlugs(
+    rows.map((r) => ({ slug: r.titles.slug, at: r.publish_at ?? r.created_at })),
+    new Date().getTime(),
+  );
 }
 
 async function latestEpisodeSlugs(): Promise<string[]> {

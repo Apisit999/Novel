@@ -51,6 +51,10 @@ test.describe("ไอเดียจาก WEBTOON (ต้องมี SUPABASE_
     await expect(rows.nth(0)).not.toContainText("ใหม่");
     await expect(rows.nth(1)).toContainText("ใหม่");
     await expect(rows.nth(0)).toContainText(/\d{1,2} \S+ \d{2}/); // วันที่ไทยสั้น
+
+    // การ์ดของเรื่องที่มีตอนใหม่ภายใน 7 วันมีป้าย "อัป"
+    await page.goto(`/search?q=${slug}`);
+    await expect(page.locator(`main a[href='/title/${slug}']`).first()).toContainText("อัป");
   });
 
   test("หน้าเรื่องแสดง 'ผลงานอื่นของ' ผู้สร้างเดียวกัน ไม่รวมตัวเอง", async ({ page }) => {

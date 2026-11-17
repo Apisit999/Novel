@@ -82,3 +82,21 @@ describe("pickFeaturedList", () => {
     expect(new Set(slugs).size).toBe(slugs.length);
   });
 });
+
+describe("recentSlugs", () => {
+  it("keeps only titles with an episode in the last 7 days (not future), unique", async () => {
+    const { recentSlugs } = await import("./discovery");
+    const now = Date.parse("2026-11-17T00:00:00Z");
+    const r = recentSlugs(
+      [
+        { slug: "a", at: "2026-11-16T00:00:00Z" },
+        { slug: "a", at: "2026-11-15T00:00:00Z" },
+        { slug: "b", at: "2026-10-01T00:00:00Z" },
+        { slug: "c", at: "2026-11-30T00:00:00Z" },
+        { slug: "d", at: "garbage" },
+      ],
+      now,
+    );
+    expect(r).toEqual(["a"]);
+  });
+});

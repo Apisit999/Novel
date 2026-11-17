@@ -79,7 +79,10 @@ describe.skipIf(!enabled)("admin_audit_log (RLS)", () => {
     const seen = async (who: Who) =>
       as(who, async () => (await db.query(`select id from admin_audit_log`)).rows.length);
     expect(await seen("user")).toBe(0);
-    await expect(seen("anon")).rejects.toThrow(); // anon ไม่มีสิทธิ์ใช้ตารางเลย
+    expect(await seen("anon")).toBe(0); // ผู้เยี่ยมชมอ่านได้แต่ RLS กรองจนเหลือ 0 แถว
+    await expect(
+      as("anon", () => db.query("insert into admin_audit_log (action) values ('anon.insert')")),
+    ).rejects.toThrow();
   });
 
   it("แก้/ลบ/ล้างตารางไม่ได้แม้เป็นแอดมิน (เพิ่มได้อย่างเดียว)", async () => {

@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { CONTENT_TYPES, getContentType } from "@/content-types/registry";
 import {
   listFollowerCounts,
+  listRecentSlugs,
   listTags,
   listTitles,
   listViewCounts,
@@ -49,12 +50,14 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
   const hideAdult = query.adult === "hide";
   const requestedPage = parsePage(query.page);
   const showPremium = await isPaywallEnabled();
-  const [found, tags, views, followers] = await Promise.all([
+  const [found, tags, views, followers, recentList] = await Promise.all([
     listTitles(def.id, { tag, status, hideAdult }),
     listTags(def.id),
     listViewCounts(),
     listFollowerCounts(),
+    listRecentSlugs(),
   ]);
+  const recent = new Set(recentList);
   const sorted = sortTitles(found, sort, views);
   const pg = paginate(sorted.length, requestedPage, PER_PAGE);
   const titles = sorted.slice(pg.start, pg.end);
@@ -161,7 +164,13 @@ async function Listing({ props }: { props: PageProps<"/browse/[type]"> }) {
         <div className="mt-6">
           <TitleGrid>
             {titles.map((t) => (
-              <TitleCard key={t.slug} title={t} showPremium={showPremium} meta={metaOf(t.slug)} />
+              <TitleCard
+                key={t.slug}
+                title={t}
+                showPremium={showPremium}
+                meta={metaOf(t.slug)}
+                recent={recent.has(t.slug)}
+              />
             ))}
           </TitleGrid>
           <Pagination page={pg.page} totalPages={pg.totalPages} href={(n) => href({ page: n })} />

@@ -47,6 +47,8 @@ export async function createTestUser(): Promise<TestUser> {
 }
 
 export async function deleteUser(id: string) {
+  // ประวัติแอดมินเพิ่มได้อย่างเดียวและไม่ cascade (admin_id = set null) → เก็บกวาดแถวของผู้ใช้ทดสอบก่อนลบผู้ใช้
+  await admin().from("admin_audit_log").delete().eq("admin_id", id);
   await admin().auth.admin.deleteUser(id); // ไม่พบแล้ว (เทสต์ลบเองไปแล้ว) ก็ไม่เป็นไร
 }
 
